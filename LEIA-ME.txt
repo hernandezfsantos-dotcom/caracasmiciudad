@@ -1,0 +1,4 @@
+Extrai todo o ZIP para uma pasta e abre index.html no navegador.
+O design, os cartazes, a fonte Geist e as animações estão incluídos. Os planos guardados ficam no navegador. Guardar um plano de exemplo não emite um bilhete.
+As ligações de conta, publicação e bilheteira abrem o marketplace alojado e requerem Internet e o acesso correspondente.
+Para alojamento próprio do marketplace, o código do servidor e as migrações estão em worker/ e drizzle/. A partir da raiz, node scripts/build.mjs gera dist/server/index.js. O servidor requer a base D1 ligada como DB, as migrações e autenticação de confiança compatível com o Worker. Configura o endereço do teu marketplace em assets/interacciones.js.
