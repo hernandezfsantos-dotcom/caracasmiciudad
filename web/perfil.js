@@ -1,29 +1,12 @@
-const form=document.querySelector('#perfil'),status=document.querySelector('#estado');
-const params=new URLSearchParams(location.search),publish=params.has('publicar'),plan=params.get('plan');
-function fields(){
- const company=form.elements.tipo.value==='empresa';
- document.querySelector('#organizacion').hidden=!company;
- form.elements.empresa.required=company;
- document.querySelector('#comision').hidden=form.elements.tipo.value==='cliente';
-}
+import {db,login,register,logout} from '../supabase-client.js';
+const form=document.querySelector('#perfil'), status=document.querySelector('#estado'), auth=document.querySelector('#auth'), salir=document.querySelector('#salir'), panel=document.querySelector('#panel-perfil');
+let user;
+const fail=e=>status.textContent=e.message||'No se pudo completar la operación.';
+function fields(){const company=form.elements.tipo.value==='empresa';document.querySelector('#organizacion').hidden=!company;form.elements.empresa.required=company;document.querySelector('#comision').hidden=form.elements.tipo.value==='cliente';}
 form.elements.tipo.onchange=fields;
-async function load(){
- const response=await fetch('/api/perfil');if(!response.ok)throw Error();
- const data=await response.json();
- if(!data.signed){const link=document.querySelector('#identificar');link.href='/signin-with-chatgpt?return_to='+encodeURIComponent(location.pathname+location.search);link.hidden=false;return}
- form.elements.email.value=data.email||'';
- const profile=data.profile;
- if(profile){for(const key of ['nombre','tipo','empresa'])form.elements[key].value=profile[key]}
- if(publish&&form.elements.tipo.value==='cliente')form.elements.tipo.value='particular';
- if(profile&&plan){location.replace('/experiencias#oferta-'+encodeURIComponent(plan));return}
- if(profile&&publish&&profile.tipo!=='cliente'){location.replace('/publicar');return}
- fields();
- if(profile&&!publish){const panel=document.querySelector('#panel-perfil');panel.hidden=false;document.querySelector('#editar-perfil').onclick=()=>{panel.hidden=true;form.hidden=false;form.elements.nombre.focus()}}
- else form.hidden=false;
-}
-form.onsubmit=async e=>{e.preventDefault();const button=form.querySelector('button');button.disabled=true;
- try{const {nombre,tipo,empresa}=form.elements;const r=await fetch('/api/perfil',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:nombre.value,tipo:tipo.value,empresa:empresa.value})});const d=await r.json();if(!r.ok)throw Error(d.error);
- location.assign(plan?'/experiencias#oferta-'+encodeURIComponent(plan):publish&&tipo.value!=='cliente'?'/publicar':'/mi-cuenta')
- }catch(error){status.textContent=error.message;button.disabled=false}
-};
-load().catch(()=>status.textContent='No se pudo cargar tu perfil. Recarga la página.');
+async function load(){const {data,error}=await db.auth.getUser();user=data?.user;auth.hidden=!!user;salir.hidden=!user;form.hidden=true;panel.hidden=true;if(!user)return;const p=await db.from('perfiles').select('*').eq('id',user.id).maybeSingle();if(p.error)throw p.error;form.elements.email.value=user.email||'';if(p.data){for(const k of ['nombre','tipo','empresa'])form.elements[k].value=p.data[k]||'';panel.hidden=false;}else form.hidden=false;fields();}
+auth.onsubmit=async e=>{e.preventDefault();try{const f=new FormData(auth);const result=await (e.submitter.value==='register'?register:login)(f.get('email'),f.get('password'));if(result.error)throw result.error;status.textContent=result.data.session?'Sesión iniciada.':'Revisa tu correo para confirmar tu cuenta.';await load();}catch(e){fail(e)}};
+salir.onclick=async()=>{const r=await logout();if(r.error)return fail(r.error);location.reload();};
+document.querySelector('#editar-perfil').onclick=()=>{panel.hidden=true;form.hidden=false;};
+form.onsubmit=async e=>{e.preventDefault();try{if(!user)throw Error('Inicia sesión');const {nombre,tipo,empresa}=form.elements;const r=await db.from('perfiles').upsert({id:user.id,nombre:nombre.value,tipo:tipo.value,empresa:empresa.value||null});if(r.error)throw r.error;status.textContent='Perfil guardado.';if(new URLSearchParams(location.search).has('publicar')&&tipo.value!=='cliente')location.assign('./publicar.html');else await load();}catch(e){fail(e)}};
+load().catch(fail);
