@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es-VE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiencias y reservas · Caracas.Hoy</title>
+<link rel="stylesheet" href="../assets/geist.css">
+<link rel="stylesheet" href="market.css">
+</head>
+<body>
+<header><a class="brand" href="../">caracas<span>.</span><em>hoy</em></a><nav aria-label="Principal"><a href="#buscar">Experiencias</a><a href="#publicar">Publicar</a><a href="#cuenta">Mi cuenta</a><a id="admin-link" hidden href="#admin">Administración</a></nav></header>
+<main>
+<p id="notice" role="status" aria-live="polite"></p>
+<section id="buscar" hidden>
+<h1>¿Qué te provoca hacer en Caracas?</h1>
+<form id="filters">
+<label>Palabra clave<input name="q" type="search" placeholder="Teatro, pádel, café…"></label>
+<label>Categoría<select name="categoria"></select></label>
+<label>Municipio<select name="municipio"></select></label>
+<label>Zona<select name="zona"></select></label>
+<label>Fecha<input name="dia" type="date"></label>
+<label>Tipo de precio<select name="precio"><option value="">Todos</option><option value="gratis">Gratis</option><option value="pago">De pago</option></select></label>
+<label>Moneda<select name="moneda"><option value="USD">USD</option><option value="VES">VES</option></select></label>
+<label>Precio máximo<input name="max" type="number" min="0" step=".01"></label>
+<label class="check"><input type="checkbox" name="libres"> Solo con cupos disponibles</label>
+<div class="buttons"><button>Buscar actividades</button><button type="reset" class="secondary">Limpiar filtros</button></div>
+</form>
+<div id="results" class="cards"></div><button id="more" hidden>Ver más actividades</button>
+</section>
+<section id="actividad" hidden></section>
+<section id="acceso" hidden>
+<h1>Entra en Caracas.Hoy</h1>
+<form id="login" class="compact">
+<label>Correo<input name="email" type="email" required autocomplete="email"></label>
+<label>Contraseña<input name="password" type="password" required autocomplete="current-password"></label>
+<button>Entrar</button>
+</form>
+<details><summary>Crear cuenta</summary><form id="register" class="compact">
+<label>Nombre<input name="nombre" required maxlength="80" autocomplete="name"></label>
+<label>Correo<input name="email" type="email" required autocomplete="email"></label>
+<label>Contraseña<input name="password" type="password" required minlength="8" autocomplete="new-password"></label>
+<p>Usamos tu nombre y correo para gestionar tu cuenta. Tu correo se comparte con el organizador cuando solicitas una reserva.</p>
+<button>Registrarme</button>
+</form></details>
+<details><summary>Olvidé mi contraseña</summary><form id="recover" class="compact"><label>Correo<input name="email" type="email" required></label><button>Enviar enlace de recuperación</button></form></details>
+</section>
+<section id="clave" hidden><h1>Cambiar contraseña</h1><form id="password" class="compact"><label>Nueva contraseña<input name="password" type="password" required minlength="8" autocomplete="new-password"></label><button>Guardar contraseña</button></form></section>
+<section id="cuenta" hidden>
+<h1>Mi cuenta</h1><div class="buttons"><a class="button" href="#publicar">Publicar una experiencia</a><a class="button secondary" href="#clave">Cambiar contraseña</a><button id="logout" class="secondary">Cerrar sesión</button></div>
+<details id="profile-details"><summary>Mi perfil</summary><form id="profile">
+<label>Nombre<input name="nombre" maxlength="80" required autocomplete="name"></label>
+<label>Tipo de cuenta<select name="tipo"><option value="cliente">Cliente</option><option value="particular">Anunciante particular</option><option value="empresa">Anunciante empresa</option></select></label>
+<label id="company" hidden>Nombre de la empresa<input name="empresa" maxlength="80" autocomplete="organization"></label>
+<label>Teléfono<input name="telefono" type="tel" maxlength="24" autocomplete="tel"></label>
+<label>Zona habitual<input name="zona" maxlength="80"></label>
+<button>Guardar perfil</button>
+</form></details>
+<details open><summary>Mis próximas actividades</summary><div id="upcoming"></div></details>
+<details><summary>Historial de reservas</summary><div id="history"></div></details>
+<details><summary>Mis favoritos</summary><div id="favorites" class="cards"></div></details>
+<details><summary>Mis anuncios</summary><div id="listings"></div></details>
+<details><summary>Reservas recibidas</summary><div id="incoming"></div></details>
+</section>
+<section id="publicar" hidden>
+<h1 id="listing-title">Publica tu experiencia</h1>
+<p>El equipo revisa cada anuncio antes de publicarlo. Consulta su estado en Mi cuenta.</p>
+<form id="listing">
+<fieldset><legend>La experiencia</legend>
+<label>Título<input name="titulo" required maxlength="95"></label>
+<label>Categoría<select name="categoria" required></select></label>
+<label class="full">Descripción<textarea name="descripcion" required maxlength="3000" rows="4"></textarea></label>
+<label class="full">Fotografías<input name="fotos" type="file" multiple accept="image/jpeg,image/png,image/webp"><small>Hasta cinco fotos JPG, PNG o WebP, de 5 MB cada una. En una edición, las nuevas fotos reemplazan las anteriores.</small></label>
+</fieldset>
+<fieldset><legend>Lugar y fecha</legend>
+<label>Municipio<select name="municipio" required></select></label><label>Zona<select name="zona" required></select></label>
+<label>Dirección o punto de encuentro<input name="direccion" required maxlength="180"></label>
+<label>Fecha y hora de Caracas<input name="fecha" type="datetime-local" required></label>
+<label>WhatsApp con código de país<input name="whatsapp" type="tel" pattern="\+?[0-9]{8,15}" maxlength="16" required placeholder="+58412…"></label>
+<label>Condiciones de participación<textarea name="condiciones" maxlength="1200"></textarea></label>
+</fieldset>
+<fieldset><legend>Entradas y pago</legend>
+<label class="check"><input type="checkbox" name="gratis"> Actividad gratuita</label>
+<label>Precio por persona<input name="precio" type="number" min=".01" max="100000000" step=".01" required></label>
+<label>Moneda<select name="moneda"><option>USD</option><option>VES</option></select></label>
+<label>Cupos totales<input name="cupos" type="number" min="1" max="5000" required></label>
+<label class="full">Información para coordinar el pago<textarea name="instrucciones" maxlength="1200" required></textarea><small>Explica el método y el plazo. Comparte los datos privados de pago directamente con el cliente.</small></label>
+<p id="commission" class="full"></p>
+<label class="check full"><input name="comision" type="checkbox" required> Acepto la comisión del 15 % de Caracas.Hoy por cada venta confirmada.</label>
+</fieldset><button>Enviar a revisión</button>
+</form></section>
+<section id="admin" hidden>
+<h1>Administración</h1><p id="stats"></p>
+<h2>Anuncios y moderación</h2><div id="moderation"></div>
+<details><summary>Personas registradas</summary><div id="users"></div></details>
+<details><summary>Reservas</summary><div id="admin-bookings"></div></details>
+<details><summary>Categorías, municipios y zonas</summary>
+<form id="taxonomy"><label>Tipo<select name="clase"><option value="categoria">Categoría</option><option value="zona">Zona</option></select></label><label>Nombre<input name="nombre_nuevo" required maxlength="80"></label><label>Municipio de la zona<input name="municipio_nuevo" maxlength="80"></label><label class="check"><input type="checkbox" name="habilitada" checked> Disponible en el buscador</label><button>Guardar</button></form><div id="taxonomy-list"></div>
+</details><details><summary>Historial de moderación</summary><div id="audit"></div></details></section>
+</main>
+<footer><a href="../">Caracas.Hoy</a></footer>
+<script type="module" src="market.js"></script>
+</body>
+</html>
