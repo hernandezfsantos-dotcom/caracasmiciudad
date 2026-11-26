@@ -106,8 +106,8 @@
 .free-plan figure { overflow: hidden; border-radius: 1rem; }
 .free-plan-image { aspect-ratio: 1; }
 .free-plan-body { padding: .7rem 0 0; }
-.free-plan-body h3 { font-size: 1.13rem; }
-.free-plan-when, .free-plan-venue { font-size: .9rem; }
+.free-plan-body :is(h3,h5) { font-size: 1.13rem; overflow-wrap: anywhere; }
+.free-plan-when, .free-plan-venue { font-size: .95rem; }
 .free-plan-links a { display: inline-flex; align-items: center; min-height: 44px; }
 @media (min-width: 75rem) {
   .free-plan-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }

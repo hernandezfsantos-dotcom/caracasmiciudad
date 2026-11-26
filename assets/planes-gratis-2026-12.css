@@ -31,3 +31,9 @@
   line-height: 1.28;
   font-weight: 720;
 }
+
+.free-plan-months a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
