@@ -151,6 +151,7 @@ function card(a,available) {
   box.append(cover,title,el('p',area,'card-meta'),el('p',date(a.fecha_inicio),'card-meta'),
     el('strong',quote(a),'card-price'));
   if (available != null) box.append(el('p',available+' cupos disponibles','card-meta'));
+  box.append(link('Ver detalles y reservar',activity(a.id)));
   return box;
 }
 const searchFields = 'id,titulo,descripcion,categoria,municipio,zona,fecha_inicio,precio,moneda,imagenes';
@@ -219,7 +220,7 @@ async function detail(id,version) {
   root.replaceChildren(link('Volver a experiencias','#buscar',''),el('h1',a.titulo),photos,el('p',a.descripcion),
     el('p','Organiza '+(a.organizador||'el anunciante')),el('p',[a.municipio,a.zona,a.direccion].filter(Boolean).join(' · ')),
     el('p',date(a.fecha_inicio)+' · Hora de Caracas'),el('strong',quote(a)+' por persona'),el('p',n+' cupos disponibles'),
-    el('p',a.condiciones),el('p',a.precio?'El pago se acuerda directamente con el organizador. '+a.instrucciones:'Actividad gratuita.'),save);
+    el('p',a.condiciones),el('p',a.precio?'El organizador debe confirmar tu solicitud. Después acordarás el pago directamente con él. '+a.instrucciones:'Actividad gratuita.'),save);
   if (a.anunciante_id===session?.user.id || !n || Date.parse(a.fecha_inicio)<=Date.now()) return;
   if (!session) {
     root.append(action('Entrar para reservar',()=>sign(activity(id),'reserve')));
@@ -366,7 +367,7 @@ async function administration(version) {
     }
   }
   for(const u of data.usuarios)row($('users'),u.nombre,[u.tipo,u.empresa,u.email,date(u.creado)].filter(Boolean).join(' · '));
-  for(const r of data.reservas)row($('admin-bookings'),listings.find(a=>a.id===r.anuncio_id)?.titulo||r.anuncio_id,r.estado+' · '+r.cantidad+' plazas · '+money(r.total,r.moneda));
+  for(const r of data.reservas)row($('admin-bookings'),listings.find(a=>a.id===r.anuncio_id)?.titulo||r.anuncio_id,r.estado+' · '+r.cantidad+' plazas · '+money(r.total,r.moneda)+' · '+(r.pagada?'Pago registrado · Comisión del 15 %: '+money(Number(r.total)*.15,r.moneda):Number(r.total)===0?'Gratis':'Pago pendiente'));
   for(const a of data.acciones)row($('audit'),a.accion,[a.objeto,a.detalle,date(a.fecha)].filter(Boolean).join(' · '));
   for(const [clase,items] of [['categoria',categories],['zona',zones]])for(const item of items){
     const box=row($('taxonomy-list'),item.nombre,[item.municipio,item.activa?'Activa':'Inactiva'].filter(Boolean).join(' · '));
