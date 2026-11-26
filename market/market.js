@@ -15,6 +15,8 @@ const messages = {
 let session, person, admin, categories = [], zones = [], edit, offset = 0, searchVersion = 0, routeVersion = 0;
 let next = '#cuenta', publicView = '#buscar', accessIntent = '';
 const access = $('acceso');
+const accessEmail = $('access-email').elements.email;
+const accessForms = ['login', 'register', 'recover'];
 const selected = form => Object.fromEntries(new FormData(form));
 const quote = (a,n = 1) => a.precio ? money(a.precio * n,a.moneda) : 'Gratis';
 const notify = t => { $(access.open ? 'access-notice' : 'notice').textContent = t; };
@@ -57,27 +59,61 @@ function sign(view,intent='') {
   accessIntent = intent;
   location.hash = '#acceso';
 }
-function showAccess() {
-  const title = accessIntent === 'reserve' ? 'Entra para reservar'
+function accessTitle() {
+  return accessIntent === 'reserve' ? 'Entra para reservar'
     : accessIntent === 'favorite' ? 'Entra para guardar tu favorito'
     : next.startsWith('#publicar') ? 'Entra para publicar tu experiencia'
     : 'Entra en Caracas.Hoy';
-  $('access-title').textContent = title;
-  $('access-description').textContent = 'Inicia sesión o crea una cuenta gratis para continuar.';
+}
+function accessStep(step) {
+  const start = step === 'start';
+  $('access-start').hidden = !start;
+  $('access-email-summary').hidden = start;
+  $('access-email-value').textContent = accessEmail.value.trim();
+  for (const id of accessForms) $(id).hidden = id !== step;
+  $('access-title').textContent = ({
+    register:'Crea tu cuenta',
+    recover:'Recupera tu contraseña'
+  })[step] || accessTitle();
+  $('access-description').textContent = ({
+    login:'Ingresa tu contraseña o crea una cuenta gratis.',
+    register:'Regístrate gratis con tu correo electrónico.',
+    recover:'Te enviaremos un enlace para elegir una nueva contraseña.'
+  })[step] || 'Inicia sesión o crea una cuenta gratis para continuar.';
+  $('access-notice').textContent = '';
+  if (!access.open) return;
+  const focus = {
+    start:accessEmail,
+    login:$('login').elements.password,
+    register:$('register').elements.nombre,
+    recover:$('recover').querySelector('button')
+  };
+  focus[step].focus();
+}
+function showAccess() {
   if (!access.open) {
-    $('access-notice').textContent = '';
+    for (const id of accessForms) $(id).reset();
+    accessStep('start');
     access.showModal();
+    accessEmail.focus();
   }
 }
 function dismissAccess() { location.hash = publicView; }
 $('close-access').onclick = dismissAccess;
 access.oncancel = event => { event.preventDefault(); dismissAccess(); };
-$('email-login').onclick = () => {
-  const expanded = $('email-forms').hidden;
-  $('email-forms').hidden = !expanded;
-  $('email-login').setAttribute('aria-expanded',String(expanded));
-  if(expanded) $('login').elements.email.focus();
+submit($('access-email'), ({email}) => {
+  $('login').elements.email.value = email.trim();
+  $('register').elements.email.value = email.trim();
+  accessStep('login');
+});
+$('change-email').onclick = () => {
+  $('login').elements.password.value = '';
+  $('register').elements.password.value = '';
+  accessStep('start');
 };
+$('show-register').onclick = () => accessStep('register');
+$('show-recover').onclick = () => accessStep('recover');
+$('register-back').onclick = $('recover-back').onclick = () => accessStep('login');
 function populate(form, all) {
   const f = form.elements;
   setOptions(f.categoria,categories.filter(x=>x.activa).map(x=>x.nombre),all?'Todas':'Selecciona');
@@ -371,11 +407,11 @@ submit($('login'),async f=>{
 submit($('register'),async f=>{
   rememberReturn();
   const data=await get(db.auth.signUp({email:f.email,password:f.password,options:{data:{nombre:f.nombre},emailRedirectTo:callback()}}));
-  $('register').reset();
+  $('register').elements.password.value = '';
   if(data.session){session=data.session;await refreshAccount();finishAccess(next);return}
   notify('Revisa tu correo y abre el enlace para confirmar tu cuenta.');
 });
-submit($('recover'),async f=>{await get(db.auth.resetPasswordForEmail(f.email,{redirectTo:callback()}));notify('Si existe la cuenta, recibirás un enlace para cambiar tu contraseña.');});
+submit($('recover'),async()=>{await get(db.auth.resetPasswordForEmail(accessEmail.value.trim(),{redirectTo:callback()}));notify('Si existe la cuenta, recibirás un enlace para cambiar tu contraseña.');});
 submit($('password'),async f=>{await get(db.auth.updateUser(f));$('password').reset();location.hash='#cuenta';notify('Contraseña actualizada.');});
 $('logout').onclick=async()=>{try{await get(db.auth.signOut());session=null;sessionStorage.removeItem(returnKey);await refreshAccount();next='#cuenta';location.hash='#acceso';notify('Sesión cerrada.')}catch(e){feedback(e)}};
 function defaults() {

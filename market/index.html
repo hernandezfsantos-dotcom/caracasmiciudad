@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Experiencias y reservas · Caracas.Hoy</title>
 <link rel="stylesheet" href="../assets/geist.css">
-<link rel="stylesheet" href="market.css?v=responsive-1">
+<link rel="stylesheet" href="market.css?v=acceso-2">
 </head>
 <body>
 <header><a class="brand" href="../">caracas<span>.</span><em>hoy</em></a><nav aria-label="Principal"><a href="#buscar">Experiencias</a><a href="#publicar">Publicar</a><a href="#cuenta">Mi cuenta</a><a id="admin-link" hidden href="#admin">Administración</a></nav></header>
@@ -28,32 +28,49 @@
 <div id="results" class="cards"></div><button id="more" hidden>Ver más actividades</button>
 </section>
 <section id="actividad" hidden></section>
-<dialog id="acceso" aria-labelledby="access-title">
+<dialog id="acceso" aria-labelledby="access-title" aria-describedby="access-description">
 <button id="close-access" type="button" aria-label="Cerrar">×</button>
 <span class="brand" aria-hidden="true">caracas<span>.</span><em>hoy</em></span>
 <h1 id="access-title">Entra en Caracas.Hoy</h1>
 <p id="access-description"></p>
+<div id="access-start">
+<form id="access-email" class="access-form">
+<label>Correo electrónico<input name="email" type="email" required autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="tu@email.com" autofocus></label>
+<button class="access-primary">Continuar</button>
+</form>
+<p class="access-divider">o</p>
 <div class="access-methods">
 <button id="google-login" type="button" class="secondary" disabled>Continuar con Google</button>
 <small id="google-status">Comprobando la disponibilidad de Google…</small>
-<button id="email-login" type="button" aria-expanded="false" aria-controls="email-forms">Continuar con correo</button>
 </div>
-<p id="access-notice" role="status" aria-live="polite"></p>
-<div id="email-forms" hidden>
-<form id="login" class="compact">
-<label>Correo<input name="email" type="email" required autocomplete="email"></label>
+</div>
+<div id="access-email-summary" hidden>
+<p id="access-email-value"></p>
+<button type="button" id="change-email" class="access-link">Cambiar correo</button>
+</div>
+<form id="login" class="access-form" hidden>
+<input name="email" type="email" autocomplete="username" hidden>
 <label>Contraseña<input name="password" type="password" required autocomplete="current-password"></label>
-<button>Entrar</button>
+<button class="access-primary">Entrar</button>
+<div class="access-links">
+<button type="button" id="show-register" class="access-link">Crear cuenta</button>
+<button type="button" id="show-recover" class="access-link">Olvidé mi contraseña</button>
+</div>
 </form>
-<details><summary>Crear cuenta</summary><form id="register" class="compact">
+<form id="register" class="access-form" hidden>
 <label>Nombre<input name="nombre" required maxlength="80" autocomplete="name"></label>
-<label>Correo<input name="email" type="email" required autocomplete="email"></label>
+<input name="email" type="email" autocomplete="username" hidden>
 <label>Contraseña<input name="password" type="password" required minlength="8" autocomplete="new-password"></label>
-<p>Usamos tu nombre y correo para gestionar tu cuenta. Tu correo se comparte con el organizador cuando solicitas una reserva.</p>
-<button>Registrarme</button>
-</form></details>
-<details><summary>Olvidé mi contraseña</summary><form id="recover" class="compact"><label>Correo<input name="email" type="email" required></label><button>Enviar enlace de recuperación</button></form></details>
-</div></dialog>
+<small>Usamos tu nombre y correo para gestionar tu cuenta. Tu correo se comparte con el organizador cuando solicitas una reserva.</small>
+<button class="access-primary">Crear mi cuenta</button>
+<button type="button" id="register-back" class="access-link">Volver a iniciar sesión</button>
+</form>
+<form id="recover" class="access-form" hidden>
+<button class="access-primary">Enviar enlace de recuperación</button>
+<button type="button" id="recover-back" class="access-link">Volver a iniciar sesión</button>
+</form>
+<p id="access-notice" role="status" aria-live="polite"></p>
+</dialog>
 <section id="clave" hidden><h1>Cambiar contraseña</h1><form id="password" class="compact"><label>Nueva contraseña<input name="password" type="password" required minlength="8" autocomplete="new-password"></label><button>Guardar contraseña</button></form></section>
 <section id="cuenta" hidden>
 <h1>Mi cuenta</h1><div class="buttons"><a class="button" href="#publicar">Publicar una experiencia</a><a class="button secondary" href="#clave">Cambiar contraseña</a><button id="logout" class="secondary">Cerrar sesión</button></div>
@@ -108,6 +125,6 @@
 </details><details><summary>Historial de moderación</summary><div id="audit"></div></details></section>
 </main>
 <footer><a href="../">Caracas.Hoy</a></footer>
-<script type="module" src="market.js"></script>
+<script type="module" src="market.js?v=acceso-2"></script>
 </body>
 </html>
