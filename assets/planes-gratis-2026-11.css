@@ -28,20 +28,14 @@
   position: relative;
   margin: 0;
 }
-.free-plan-photo {
+.free-plan-image {
+  display: block;
+  width: 100%;
+  height: auto;
   aspect-ratio: 3 / 2;
-  background: #f5ede2 url("planes-gratis-2026-11.webp") no-repeat;
-  background-size: 300% 300%;
+  object-fit: cover;
+  background: #f5ede2;
 }
-.free-plan-photo.tile-0 { background-position: 0% 0%; }
-.free-plan-photo.tile-1 { background-position: 50% 0%; }
-.free-plan-photo.tile-2 { background-position: 100% 0%; }
-.free-plan-photo.tile-3 { background-position: 0% 50%; }
-.free-plan-photo.tile-4 { background-position: 50% 50%; }
-.free-plan-photo.tile-5 { background-position: 100% 50%; }
-.free-plan-photo.tile-6 { background-position: 0% 100%; }
-.free-plan-photo.tile-7 { background-position: 50% 100%; }
-.free-plan-photo.tile-8 { background-position: 100% 100%; }
 .free-plan figcaption {
   position: absolute;
   right: .5rem;
