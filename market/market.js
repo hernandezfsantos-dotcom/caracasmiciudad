@@ -1,7 +1,7 @@
 import {db,value,money,date,localTime} from './client.js';
 
 const $ = id => document.getElementById(id);
-const ui = ['buscar','actividad','acceso','clave','cuenta','publicar','admin'];
+const ui = ['buscar','actividad','clave','cuenta','publicar','admin'];
 const filters = $('filters'), listing = $('listing'), profile = $('profile');
 const messages = {
   invalid_credentials:'Revisa el correo y la contraseña.',
@@ -13,10 +13,11 @@ const messages = {
   signup_disabled:'El registro está temporalmente cerrado.'
 };
 let session, person, admin, categories = [], zones = [], edit, offset = 0, searchVersion = 0, routeVersion = 0;
-let next = location.hash && !location.hash.startsWith('#access_token') ? location.hash : '#cuenta';
+let next = '#cuenta', publicView = '#buscar', accessIntent = '';
+const access = $('acceso');
 const selected = form => Object.fromEntries(new FormData(form));
 const quote = (a,n = 1) => a.precio ? money(a.precio * n,a.moneda) : 'Gratis';
-const notify = t => { $('notice').textContent = t; };
+const notify = t => { $(access.open ? 'access-notice' : 'notice').textContent = t; };
 const feedback = e => notify(messages[e.code] || (e.code === 'P0001' ? e.message : e instanceof Error && !e.code && !e.status ? e.message : 'No se pudo completar la operación. Inténtalo de nuevo.'));
 const get = async result => value(await result);
 function el(tag, text, cls) {
@@ -51,7 +52,32 @@ function setOptions(select, choices, empty) {
 }
 const normalize = input => String(input || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const activity = id => '#actividad/'+id;
-const sign = view => { next = view; location.hash = '#acceso'; };
+function sign(view,intent='') {
+  next = view;
+  accessIntent = intent;
+  location.hash = '#acceso';
+}
+function showAccess() {
+  const title = accessIntent === 'reserve' ? 'Entra para reservar'
+    : accessIntent === 'favorite' ? 'Entra para guardar tu favorito'
+    : next.startsWith('#publicar') ? 'Entra para publicar tu experiencia'
+    : 'Entra en Caracas.Hoy';
+  $('access-title').textContent = title;
+  $('access-description').textContent = 'Inicia sesión o crea una cuenta gratis para continuar.';
+  if (!access.open) {
+    $('access-notice').textContent = '';
+    access.showModal();
+  }
+}
+function dismissAccess() { location.hash = publicView; }
+$('close-access').onclick = dismissAccess;
+access.oncancel = event => { event.preventDefault(); dismissAccess(); };
+$('email-login').onclick = () => {
+  const expanded = $('email-forms').hidden;
+  $('email-forms').hidden = !expanded;
+  $('email-login').setAttribute('aria-expanded',String(expanded));
+  if(expanded) $('login').elements.email.focus();
+};
 function populate(form, all) {
   const f = form.elements;
   setOptions(f.categoria,categories.filter(x=>x.activa).map(x=>x.nombre),all?'Todas':'Selecciona');
@@ -79,10 +105,16 @@ async function photo(path, where) {
 }
 function card(a,available) {
   const box = el('article',null,'card');
-  const image = el('div');
-  void photo(a.imagenes?.[0],image);
-  box.append(image,el('h2',a.titulo),el('p',[a.zona,a.municipio,date(a.fecha_inicio)].join(' · ')),el('p',quote(a)),
-    ...(available == null ? [] : [el('p',available+' cupos disponibles')]),link('Ver actividad',activity(a.id)));
+  const cover = link('',activity(a.id),'card-cover');
+  cover.setAttribute('aria-label',a.titulo);
+  void photo(a.imagenes?.[0],cover);
+  if (!Number(a.precio)) cover.append(el('span','Gratis','card-label'));
+  const title = el('h2');
+  title.append(link(a.titulo,activity(a.id),'card-title'));
+  const area = [a.zona,a.municipio].filter(Boolean).join(' · ');
+  box.append(cover,title,el('p',area,'card-meta'),el('p',date(a.fecha_inicio),'card-meta'),
+    el('strong',quote(a),'card-price'));
+  if (available != null) box.append(el('p',available+' cupos disponibles','card-meta'));
   return box;
 }
 const searchFields = 'id,titulo,descripcion,categoria,municipio,zona,fecha_inicio,precio,moneda,imagenes';
@@ -142,7 +174,7 @@ async function detail(id,version) {
   const n = available[0]?.libres ?? 0, photos = el('div',null,'photos');
   for (const path of a.imagenes) void photo(path,photos);
   const save = action(favorite?'Quitar de favoritos':'Guardar en favoritos',async()=>{
-    if (!session) return sign(activity(id));
+    if (!session) return sign(activity(id),'favorite');
     if (!person) return editProfileFor(activity(id));
     if (favorite) await get(db.from('favoritos').delete().eq('usuario_id',session.user.id).eq('anuncio_id',id));
     else await get(db.from('favoritos').insert({usuario_id:session.user.id,anuncio_id:id}));
@@ -153,13 +185,17 @@ async function detail(id,version) {
     el('p',date(a.fecha_inicio)+' · Hora de Caracas'),el('strong',quote(a)+' por persona'),el('p',n+' cupos disponibles'),
     el('p',a.condiciones),el('p',a.precio?'El pago se acuerda directamente con el organizador. '+a.instrucciones:'Actividad gratuita.'),save);
   if (a.anunciante_id===session?.user.id || !n || Date.parse(a.fecha_inicio)<=Date.now()) return;
+  if (!session) {
+    root.append(action('Entrar para reservar',()=>sign(activity(id),'reserve')));
+    return;
+  }
   const form = el('form',null,'compact'), label = el('label','Número de participantes'), qty = el('input');
   Object.assign(qty,{type:'number',name:'qty',min:'1',max:String(Math.min(n,100)),value:'1',required:true});
   const total = el('output','Total: '+quote(a)), button = el('button','Solicitar reserva');
   qty.oninput = ()=>{total.textContent='Total: '+quote(a,Number(qty.value))};
   label.append(qty);form.append(label,total,button);root.append(form);
   submit(form,async({qty:count})=>{
-    if (!session) return sign(activity(id));
+    if (!session) return sign(activity(id),'reserve');
     if (!person) return editProfileFor(activity(id));
     await get(db.rpc('pedir_reserva',{actividad:id,plazas:Number(count)}));
     location.hash='#cuenta';notify('Solicitud recibida. Consulta su estado en Mi cuenta.');
@@ -167,7 +203,7 @@ async function detail(id,version) {
 }
 function editProfileFor(target) {
   next=target;location.hash='#cuenta';$('profile-details').open=true;
-  notify('Completa tu perfil para continuar.');
+  notify(target.startsWith('#publicar') ? 'Elige Anunciante particular o Anunciante empresa en Mi perfil para publicar.' : 'Completa tu perfil para continuar.');
 }
 function row(root,title,description) {
   const box=el('article',null,'row');
@@ -304,19 +340,44 @@ async function administration(version) {
 }
 submit($('taxonomy'),async f=>{await get(db.rpc('gestionar_catalogo',{...f,habilitada:!!f.habilitada}));await metadata();await administration(routeVersion);notify('Catálogo actualizado.');});
 const callback = () => new URL('./',location.href).href;
+const returnKey = 'caracas-market-return';
+function rememberReturn() { sessionStorage.setItem(returnKey,next); }
+function finishAccess(target) {
+  sessionStorage.removeItem(returnKey);
+  if (access.open) access.close();
+  location.hash = target;
+}
+async function enableGoogle() {
+  const settings = await fetch(db.supabaseUrl+'/auth/v1/settings',{headers:{apikey:db.supabaseKey}});
+  if (!settings.ok) throw Error();
+  const {external} = await settings.json();
+  $('google-login').disabled = !external?.google;
+  $('google-status').hidden = !!external?.google;
+  $('google-status').textContent = 'El acceso con Google estará disponible próximamente.';
+}
+enableGoogle().catch(()=>{$('google-status').textContent = 'Google no está disponible por el momento.';});
+$('google-login').onclick = async () => {
+  const button = $('google-login');
+  button.disabled = true;
+  try {
+    rememberReturn();
+    await get(db.auth.signInWithOAuth({provider:'google',options:{redirectTo:callback()}}));
+  } catch(error) { feedback(error);button.disabled = false; }
+};
 submit($('login'),async f=>{
   const data=await get(db.auth.signInWithPassword(f));session=data.session;await refreshAccount();
-  $('login').reset();location.hash=next==='#acceso'?'#cuenta':next;notify('Sesión iniciada.');
+  $('login').reset();finishAccess(next);notify('Sesión iniciada.');
 });
 submit($('register'),async f=>{
+  rememberReturn();
   const data=await get(db.auth.signUp({email:f.email,password:f.password,options:{data:{nombre:f.nombre},emailRedirectTo:callback()}}));
   $('register').reset();
-  if(data.session){session=data.session;await refreshAccount();location.hash=next==='#acceso'?'#cuenta':next;return}
+  if(data.session){session=data.session;await refreshAccount();finishAccess(next);return}
   notify('Revisa tu correo y abre el enlace para confirmar tu cuenta.');
 });
 submit($('recover'),async f=>{await get(db.auth.resetPasswordForEmail(f.email,{redirectTo:callback()}));notify('Si existe la cuenta, recibirás un enlace para cambiar tu contraseña.');});
 submit($('password'),async f=>{await get(db.auth.updateUser(f));$('password').reset();location.hash='#cuenta';notify('Contraseña actualizada.');});
-$('logout').onclick=async()=>{try{await get(db.auth.signOut());session=null;await refreshAccount();next='#cuenta';location.hash='#acceso';notify('Sesión cerrada.')}catch(e){feedback(e)}};
+$('logout').onclick=async()=>{try{await get(db.auth.signOut());session=null;sessionStorage.removeItem(returnKey);await refreshAccount();next='#cuenta';location.hash='#acceso';notify('Sesión cerrada.')}catch(e){feedback(e)}};
 function defaults() {
   const search=new URLSearchParams(location.search), f=filters.elements;
   for(const k of ['q','categoria','municipio','dia'])if(search.has(k))f[k].value=search.get(k);
@@ -327,7 +388,18 @@ function defaults() {
 async function route() {
   const version=++routeVersion;
   const [name,id]=location.hash.slice(1).split('/');
+  if (name==='acceso') {
+    if (session) { finishAccess(next);return; }
+    if (!['buscar','actividad'].some(page=>!$(page).hidden)) {
+      for (const page of ui) $(page).hidden = page!=='buscar';
+      search().catch(feedback);
+    }
+    showAccess();
+    return;
+  }
+  if (access.open) access.close();
   const view=ui.includes(name)?name:'buscar';
+  if (view==='buscar'||view==='actividad') publicView=location.hash||'#buscar';
   if(!session&&['cuenta','publicar','admin','clave'].includes(view))return sign('#'+name+(id?'/'+id:''));
   if(view==='admin'&&!admin){location.hash='#cuenta';notify('Acceso restringido.');return}
   for(const page of ui)$(page).hidden=page!==view;
@@ -342,4 +414,18 @@ db.auth.onAuthStateChange((event,current)=>{
   if(event==='PASSWORD_RECOVERY'){recovering=true;session=current;location.hash='#clave';}
   if(event==='SIGNED_OUT'&&session){session=null;person=null;admin=false;$('admin-link').hidden=true;route().catch(feedback)}
 });
-(async()=>{session=(await get(db.auth.getSession())).session;await refreshAccount();await metadata();defaults();if(recovering)location.hash='#clave';window.addEventListener('hashchange',()=>route().catch(feedback));await route()})().catch(feedback);
+(async()=>{
+  session=(await get(db.auth.getSession())).session;
+  await refreshAccount();
+  await metadata();
+  defaults();
+  if(recovering) {
+    sessionStorage.removeItem(returnKey);
+    location.hash='#clave';
+  } else if(session) {
+    const pending=sessionStorage.getItem(returnKey);
+    if(pending && /^#(?:cuenta|publicar(?:\/[a-f0-9-]{36})?|actividad\/[a-f0-9-]{36})$/i.test(pending)) finishAccess(pending);
+  }
+  window.addEventListener('hashchange',()=>route().catch(feedback));
+  await route();
+})().catch(feedback);

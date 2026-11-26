@@ -28,8 +28,18 @@
 <div id="results" class="cards"></div><button id="more" hidden>Ver más actividades</button>
 </section>
 <section id="actividad" hidden></section>
-<section id="acceso" hidden>
-<h1>Entra en Caracas.Hoy</h1>
+<dialog id="acceso" aria-labelledby="access-title">
+<button id="close-access" type="button" aria-label="Cerrar">×</button>
+<span class="brand" aria-hidden="true">caracas<span>.</span><em>hoy</em></span>
+<h1 id="access-title">Entra en Caracas.Hoy</h1>
+<p id="access-description"></p>
+<div class="access-methods">
+<button id="google-login" type="button" class="secondary" disabled>Continuar con Google</button>
+<small id="google-status">Comprobando la disponibilidad de Google…</small>
+<button id="email-login" type="button" aria-expanded="false" aria-controls="email-forms">Continuar con correo</button>
+</div>
+<p id="access-notice" role="status" aria-live="polite"></p>
+<div id="email-forms" hidden>
 <form id="login" class="compact">
 <label>Correo<input name="email" type="email" required autocomplete="email"></label>
 <label>Contraseña<input name="password" type="password" required autocomplete="current-password"></label>
@@ -43,7 +53,7 @@
 <button>Registrarme</button>
 </form></details>
 <details><summary>Olvidé mi contraseña</summary><form id="recover" class="compact"><label>Correo<input name="email" type="email" required></label><button>Enviar enlace de recuperación</button></form></details>
-</section>
+</div></dialog>
 <section id="clave" hidden><h1>Cambiar contraseña</h1><form id="password" class="compact"><label>Nueva contraseña<input name="password" type="password" required minlength="8" autocomplete="new-password"></label><button>Guardar contraseña</button></form></section>
 <section id="cuenta" hidden>
 <h1>Mi cuenta</h1><div class="buttons"><a class="button" href="#publicar">Publicar una experiencia</a><a class="button secondary" href="#clave">Cambiar contraseña</a><button id="logout" class="secondary">Cerrar sesión</button></div>
