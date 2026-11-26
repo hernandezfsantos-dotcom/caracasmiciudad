@@ -1,0 +1,54 @@
+.free-plan-months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+  margin: 1rem 0 1.5rem;
+}
+.free-plan-months a {
+  border: 1px solid currentColor;
+  border-radius: 2rem;
+  padding: .4rem .9rem;
+  font-size: .9rem;
+  font-weight: 650;
+}
+.free-plan-month,
+#planes-noviembre {
+  scroll-margin-top: 5.5rem;
+}
+.free-plan-month { margin-bottom: 2.5rem; }
+.free-plan-month-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.free-plan-group { margin: 1.25rem 0 1.75rem; }
+.free-plan-group > h4 {
+  margin-bottom: .85rem;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+.free-plan-body h5 {
+  font-size: 1.2rem;
+  line-height: 1.28;
+  font-weight: 720;
+}
+.free-plan-photo.december-photo {
+  background-image: url("planes-gratis-2026-12.webp");
+  background-size: 400% 300%;
+}
+.free-plan-photo.december-photo-0 { background-position: 0% 0%; }
+.free-plan-photo.december-photo-1 { background-position: 33.333333333333336% 0%; }
+.free-plan-photo.december-photo-2 { background-position: 66.66666666666667% 0%; }
+.free-plan-photo.december-photo-3 { background-position: 100% 0%; }
+.free-plan-photo.december-photo-4 { background-position: 0% 50%; }
+.free-plan-photo.december-photo-5 { background-position: 33.333333333333336% 50%; }
+.free-plan-photo.december-photo-6 { background-position: 66.66666666666667% 50%; }
+.free-plan-photo.december-photo-7 { background-position: 100% 50%; }
+.free-plan-photo.december-photo-8 { background-position: 0% 100%; }
+.free-plan-photo.december-photo-9 { background-position: 33.333333333333336% 100%; }
+.free-plan-photo.december-photo-10 { background-position: 66.66666666666667% 100%; }
+.free-plan-photo.december-photo-11 { background-position: 100% 100%; }
+.free-plan-photo.december-photo-12 {
+  background-image: url("devfest-2026-12.webp");
+  background-position: center;
+  background-size: cover;
+}
