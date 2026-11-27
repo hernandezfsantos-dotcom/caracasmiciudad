@@ -1,3 +1,4 @@
+import {eventCard} from './event-card.js';
 import {db,value,money,date} from './client.js';
 const form=document.getElementById('buscar-planes'),period=document.getElementById('periodo'),day=document.getElementById('dia');
 const startDate=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Caracas',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -17,21 +18,12 @@ async function show(){
   const [cats,zones,rows]=await Promise.all([
     db.from('categorias').select('nombre').eq('activa',true).order('nombre'),
     db.from('zonas').select('nombre').eq('activa',true).order('nombre'),
-    db.from('anuncios').select('id,titulo,zona,municipio,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString()).order('fecha_inicio').limit(6)
+    db.from('anuncios').select('id,titulo,categoria,organizador,zona,municipio,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString()).order('fecha_inicio').limit(6)
   ]);
   document.getElementById('tipo').replaceChildren(new Option('Todas',''),...value(cats).map(x=>new Option(x.nombre)));
   document.getElementById('zonas-caracas').replaceChildren(...value(zones).map(x=>new Option(x.nombre)));
   const grid=document.getElementById('featured-track'),items=value(rows);
   if(!items.length){grid.textContent='Las próximas actividades aparecerán aquí cuando el equipo apruebe los anuncios.';return}
-  for(const a of items){
-    const card=document.createElement('article'),title=document.createElement('strong'),desc=document.createElement('p'),link=document.createElement('a');
-    title.textContent=a.titulo;desc.textContent=[a.zona,date(a.fecha_inicio),a.precio?money(a.precio,a.moneda):'Gratis'].join(' · ');
-    link.href='market/#actividad/'+a.id;link.textContent='Ver actividad';link.className='demo-buy';
-    if(a.imagenes[0]){
-      const {data}=await db.storage.from('anuncios').createSignedUrl(a.imagenes[0],300);
-      if(data?.signedUrl){const image=new Image();image.alt='';image.loading='lazy';image.src=data.signedUrl;card.append(image)}
-    }
-    card.append(title,desc,link);grid.append(card);
-  }
+  for (const a of items) grid.append(eventCard(a,'market/#actividad/'+a.id));
 }
 show().catch(()=>document.getElementById('featured-track').textContent='No se pudo cargar la agenda. Intenta recargar la página.');
