@@ -1,6 +1,7 @@
 import {eventCard} from './event-card.js';
 import {db,value,money,date,localTime} from './client.js';
 
+const signupReturn = new URLSearchParams(location.hash.slice(1)).get('type') === 'signup';
 const $ = id => document.getElementById(id);
 const ui = ['buscar','actividad','clave','cuenta','publicar','admin'];
 const filters = $('filters'), listing = $('listing'), profile = $('profile');
@@ -396,7 +397,7 @@ submit($('login'),async f=>{
 });
 submit($('register'),async f=>{
   rememberReturn();
-  const data=await get(db.auth.signUp({email:f.email,password:f.password,options:{data:{nombre:f.nombre},emailRedirectTo:callback()+'?bienvenida=1'}}));
+  const data=await get(db.auth.signUp({email:f.email,password:f.password,options:{data:{nombre:f.nombre},emailRedirectTo:callback()}}));
   $('register').elements.password.value = '';
   if(data.session){
     session=data.session;
@@ -470,7 +471,7 @@ db.auth.onAuthStateChange((event,current)=>{
   window.addEventListener('hashchange',()=>route().catch(feedback));
   await route();
   const arrival = new URL(location.href);
-  if(session?.user?.email_confirmed_at && arrival.searchParams.get('bienvenida')==='1') {
+  if(session?.user?.email_confirmed_at && (signupReturn || arrival.searchParams.get('bienvenida')==='1')) {
     notify('¡Te damos la bienvenida a Caracas.Hoy! Tu cuenta está creada y tu correo está confirmado.');
     arrival.searchParams.delete('bienvenida');
     history.replaceState(null,'',arrival);
