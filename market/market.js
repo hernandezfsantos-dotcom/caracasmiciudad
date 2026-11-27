@@ -1,3 +1,4 @@
+import {eventCard} from './event-card.js';
 import {db,value,money,date,localTime} from './client.js';
 
 const $ = id => document.getElementById(id);
@@ -140,21 +141,9 @@ async function photo(path, where) {
   if (data?.signedUrl) { image.src = data.signedUrl; where.append(image); }
 }
 function card(a,available) {
-  const box = el('article',null,'card');
-  const cover = link('',activity(a.id),'card-cover');
-  cover.setAttribute('aria-label',a.titulo);
-  void photo(a.imagenes?.[0],cover);
-  if (!Number(a.precio)) cover.append(el('span','Gratis','card-label'));
-  const title = el('h2');
-  title.append(link(a.titulo,activity(a.id),'card-title'));
-  const area = [a.zona,a.municipio].filter(Boolean).join(' · ');
-  box.append(cover,title,el('p',area,'card-meta'),el('p',date(a.fecha_inicio),'card-meta'),
-    el('strong',quote(a),'card-price'));
-  if (available != null) box.append(el('p',available+' cupos disponibles','card-meta'));
-  box.append(link('Ver detalles y reservar',activity(a.id)));
-  return box;
+  return eventCard(a,activity(a.id),available);
 }
-const searchFields = 'id,titulo,descripcion,categoria,municipio,zona,fecha_inicio,precio,moneda,imagenes';
+const searchFields = 'id,titulo,descripcion,organizador,categoria,municipio,zona,fecha_inicio,precio,moneda,imagenes';
 async function search(reset = true) {
   const turn = ++searchVersion;
   if (reset) {offset = 0;$('more').hidden=true;}
