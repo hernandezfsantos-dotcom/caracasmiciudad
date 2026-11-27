@@ -399,7 +399,9 @@ submit($('register'),async f=>{
   const data=await get(db.auth.signUp({email:f.email,password:f.password,options:{data:{nombre:f.nombre},emailRedirectTo:callback()}}));
   $('register').elements.password.value = '';
   if(data.session){session=data.session;await refreshAccount();finishAccess(next);return}
-  notify('Revisa tu correo y abre el enlace para confirmar tu cuenta.');
+  accessStep('login');
+  notify('Si tu cuenta es nueva, revisa tu correo para confirmarla. Si ya tienes cuenta, entra con tu contraseña. Si usaste Google, pulsa Cambiar correo y elige Continuar con Google.');
+  $('access-notice').scrollIntoView({block:'nearest'});
 });
 submit($('recover'),async()=>{await get(db.auth.resetPasswordForEmail(accessEmail.value.trim(),{redirectTo:callback()}));notify('Si existe la cuenta, recibirás un enlace para cambiar tu contraseña.');});
 submit($('password'),async f=>{await get(db.auth.updateUser(f));$('password').reset();location.hash='#cuenta';notify('Contraseña actualizada.');});
