@@ -396,12 +396,25 @@ submit($('login'),async f=>{
 });
 submit($('register'),async f=>{
   rememberReturn();
-  const data=await get(db.auth.signUp({email:f.email,password:f.password,options:{data:{nombre:f.nombre},emailRedirectTo:callback()}}));
+  const data=await get(db.auth.signUp({email:f.email,password:f.password,options:{data:{nombre:f.nombre},emailRedirectTo:callback()+'?bienvenida=1'}}));
   $('register').elements.password.value = '';
-  if(data.session){session=data.session;await refreshAccount();finishAccess(next);return}
+  if(data.session){
+    session=data.session;
+    await refreshAccount();
+    finishAccess(next);
+    notify('¡Te damos la bienvenida a Caracas.Hoy! Tu cuenta está lista.');
+    return;
+  }
   accessStep('login');
-  notify('Si tu cuenta es nueva, revisa tu correo para confirmarla. Si ya tienes cuenta, entra con tu contraseña. Si usaste Google, pulsa Cambiar correo y elige Continuar con Google.');
-  $('access-notice').scrollIntoView({block:'nearest'});
+  $('login').hidden = true;
+  const title = $('access-title');
+  title.textContent = 'Revisa tu correo';
+  title.tabIndex = -1;
+  $('access-description').textContent = 'Para activar una cuenta nueva, abre el mensaje de Caracas.Hoy o Supabase y confirma tu dirección. Revisa también el correo no deseado.';
+  const notice = $('access-notice');
+  notice.replaceChildren(action('Volver a iniciar sesión',()=>accessStep('login')));
+  title.focus();
+  access.scrollTop = 0;
 });
 submit($('recover'),async()=>{await get(db.auth.resetPasswordForEmail(accessEmail.value.trim(),{redirectTo:callback()}));notify('Si existe la cuenta, recibirás un enlace para cambiar tu contraseña.');});
 submit($('password'),async f=>{await get(db.auth.updateUser(f));$('password').reset();location.hash='#cuenta';notify('Contraseña actualizada.');});
@@ -456,4 +469,10 @@ db.auth.onAuthStateChange((event,current)=>{
   }
   window.addEventListener('hashchange',()=>route().catch(feedback));
   await route();
+  const arrival = new URL(location.href);
+  if(session?.user?.email_confirmed_at && arrival.searchParams.get('bienvenida')==='1') {
+    notify('¡Te damos la bienvenida a Caracas.Hoy! Tu cuenta está creada y tu correo está confirmado.');
+    arrival.searchParams.delete('bienvenida');
+    history.replaceState(null,'',arrival);
+  }
 })().catch(feedback);
