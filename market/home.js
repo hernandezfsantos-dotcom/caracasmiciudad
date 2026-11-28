@@ -5,14 +5,59 @@ const startDate=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Caracas',year
 const shift=(s,n)=>new Date(Date.parse(s+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
 day.value=day.min=startDate;
 period.onchange=()=>{document.getElementById('dia-label').hidden=period.value!=='fecha';day.required=period.value==='fecha'};
-form.onsubmit=e=>{
+  const crear=(tag,text,clase)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(clase)e.className=clase;return e;};
+function ficha(a,previo){
+    const card=crear('article',null,'free-plan'),figure=crear('figure'),img=crear('img',null,'free-plan-image');
+    img.src=a.imagen;img.alt=previo?.querySelector('img')?.alt||'';img.loading='lazy';img.width=432;img.height=288;
+    figure.append(img,crear('figcaption','Imagen ilustrativa'),crear('span',a.categoria,'agenda-category'));
+    const body=crear('div',null,'free-plan-body'),badge=crear('small'),detalle=crear('details'),enlaces=crear('div',null,'free-plan-links'),fuente=crear('a','Consultar la fuente del evento');
+    fuente.href=a.fuente;enlaces.append(fuente);
+    const organizador=previo?.querySelector('.free-plan-links a:nth-child(2)');
+    if(organizador)enlaces.append(organizador.cloneNode(true));
+    detalle.append(crear('summary','Más información'),crear('p',a.descripcion),enlaces);
+    badge.append(crear('span',a.etiqueta));body.append(badge,crear('p',a.horario,'free-plan-when'),crear('p',a.lugar,'free-plan-venue'),crear('h3',a.titulo),detalle);
+    card.append(figure,body);return card;
+}
+const limpio = texto => (texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+let consulta=0;
+form.onsubmit=async e=>{
   e.preventDefault();
-  const params=new URLSearchParams({zona:document.getElementById('zona').value,categoria:document.getElementById('tipo').value});
-  if(period.value==='hoy')params.set('dia',startDate);
-  if(period.value==='manana')params.set('dia',shift(startDate,1));
-  if(period.value==='fecha')params.set('dia',day.value);
-  if(period.value==='fin')params.set('fin','1');
-  location.assign('market/?'+params+'#buscar');
+  const version=++consulta, salida=document.getElementById('planes-reales'), estado=document.getElementById('resultado');
+  salida.replaceChildren();estado.textContent='Buscando planes…';
+  const zona=limpio(document.getElementById('zona').value),categoria=document.getElementById('tipo').value;
+  const fechas=[];
+  if(period.value==='hoy')fechas.push(startDate);
+  if(period.value==='manana')fechas.push(shift(startDate,1));
+  if(period.value==='fecha')fechas.push(day.value);
+  if(period.value==='fin'){
+    const hoy=new Date(startDate+'T12:00:00Z').getUTCDay();
+    for(let i=0;i<=(7-hoy)%7;i++)if([0,5,6].includes((hoy+i)%7))fechas.push(shift(startDate,i));
+  }
+  try{
+    const [editoriales,anuncios]=await Promise.all([
+      db.from('agenda_editorial').select('*').eq('publicada',true).gte('hasta',startDate),
+      db.from('anuncios').select('id,titulo,categoria,organizador,zona,municipio,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString())
+    ]);
+    if(version!==consulta)return;
+    const planes=[];
+    const equivalentes={Exposición:'Artes y cultura',Teatro:'Artes y cultura',Literatura:'Lectura'};
+    for(const a of value(editoriales)){
+      if(categoria && categoria!==a.categoria && categoria!==equivalentes[a.categoria])continue;
+      if(!limpio(a.lugar).includes(zona))continue;
+      const dias=a.dias.filter(d=>d>=startDate && (!fechas.length||fechas.includes(d))).sort();
+      if(fechas.length&&!dias.length)continue;
+      planes.push({fecha:dias[0]||a.desde,card:ficha(a)});
+    }
+    for(const a of value(anuncios)){
+      const fecha=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Caracas'}).format(new Date(a.fecha_inicio));
+      if(categoria && categoria!==a.categoria || !limpio([a.zona,a.municipio].join(' ')).includes(zona) || fechas.length&&!fechas.includes(fecha))continue;
+      planes.push({fecha,card:eventCard(a,'market/#actividad/'+a.id)});
+    }
+    planes.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    salida.replaceChildren(...planes.map(p=>p.card));
+    estado.textContent=planes.length===1?'1 plan encontrado.':planes.length?planes.length+' planes encontrados.':'No encontramos planes. Prueba con otra zona, fecha o categoría.';
+    estado.scrollIntoView({block:'center'});
+  }catch{if(version===consulta)estado.textContent='No pudimos cargar los planes. Vuelve a intentarlo.';}
 };
 async function show(){
   const [cats,zones,rows]=await Promise.all([
@@ -35,7 +80,7 @@ async function cargarAgendaEditorial() {
   const titulo=document.getElementById('planes-gratis-title');
   const nav=document.createElement('nav');nav.className='free-plan-months';nav.setAttribute('aria-label','Mes de la agenda');
   const meses=new Map();
-  const crear=(tag,text,clase)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(clase)e.className=clase;return e;};
+
   for(const a of datos){
     const mes=a.desde.slice(0,7);
     if(!meses.has(mes)){
@@ -44,16 +89,7 @@ async function cargarAgendaEditorial() {
       grupo.id='agenda-'+mes;grupo.append(crear('h3',nombre,'free-plan-month-title'),grid);
       const salto=crear('a',nombre);salto.href='#'+grupo.id;nav.append(salto);meses.set(mes,{grupo,grid});
     }
-    const previo=anteriores.get(a.imagen), card=crear('article',null,'free-plan'),figure=crear('figure'),img=crear('img',null,'free-plan-image');
-    img.src=a.imagen;img.alt=previo?.querySelector('img')?.alt||'';img.loading='lazy';img.width=432;img.height=288;
-    figure.append(img,crear('figcaption','Imagen ilustrativa'),crear('span',a.categoria,'agenda-category'));
-    const body=crear('div',null,'free-plan-body'),badge=crear('small'),detalle=crear('details'),enlaces=crear('div',null,'free-plan-links'),fuente=crear('a','Consultar la fuente del evento');
-    fuente.href=a.fuente;enlaces.append(fuente);
-    const organizador=previo?.querySelector('.free-plan-links a:nth-child(2)');
-    if(organizador)enlaces.append(organizador.cloneNode(true));
-    detalle.append(crear('summary','Más información'),crear('p',a.descripcion),enlaces);
-    badge.append(crear('span',a.etiqueta));body.append(badge,crear('p',a.horario,'free-plan-when'),crear('p',a.lugar,'free-plan-venue'),crear('h3',a.titulo),detalle);
-    card.append(figure,body);meses.get(mes).grid.append(card);
+    meses.get(mes).grid.append(ficha(a,anteriores.get(a.imagen)));
   }
   seccion.replaceChildren(titulo,nav,...Array.from(meses.values(),m=>m.grupo));
   if(!datos.length)seccion.append(crear('p','Pronto publicaremos más planes gratuitos.'));
