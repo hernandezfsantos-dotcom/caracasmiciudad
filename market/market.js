@@ -316,6 +316,24 @@ async function dashboard(version) {
     }else booking($('incoming'),r,true);
   }
   for(const [key,txt] of [['favorites','Todavía no guardaste actividades.'],['listings','Todavía no tienes anuncios.'],['incoming','Todavía no recibiste reservas.'],['upcoming','Todavía no tienes reservas próximas.'],['history','Todavía no hay reservas en el historial.']]) empty($(key),txt);
+  let avisos=$('notificaciones');
+  if(!avisos){
+    const panel=el('details');panel.append(el('summary','Mis notificaciones'));
+    avisos=el('div');avisos.id='notificaciones';panel.append(avisos);
+    $('history').closest('details').after(panel);
+  }
+  const mensajes=await get(db.from('notificaciones').select('id,mensaje,creada,leida').eq('usuario_id',user).order('id',{ascending:false}).limit(50));
+  if(version!==routeVersion||session?.user.id!==user)return;
+  avisos.replaceChildren();
+  for(const aviso of mensajes){
+    const bloque=row(avisos,aviso.mensaje,date(aviso.creada));
+    if(!aviso.leida)bloque.append(action('Marcar como leída',async()=>{
+      await get(db.from('notificaciones').update({leida:true}).eq('id',aviso.id).select('id').single());
+      await dashboard(routeVersion);
+    }));
+  }
+  empty(avisos,'Todavía no tienes notificaciones.');
+
 }
 profile.elements.tipo.onchange=()=>{
   const company=profile.elements.tipo.value==='empresa';
