@@ -19,6 +19,15 @@ function ficha(a,previo){
     card.append(figure,body);return card;
 }
 const limpio = texto => (texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+let zonasActivas=[];
+function coincideZona(lugar, seleccion){
+  if(!seleccion)return true;
+  const texto=limpio(lugar);
+  if(texto.includes(seleccion))return true;
+  const referencias={libertador:['parque los caobos','plaza de los museos','bellas artes','montalban','ucv'],sucre:['terrazas del avila','los galpones'],baruta:['manzanares','la trinidad']};
+  return zonasActivas.some(z=>limpio(z.municipio)===seleccion && texto.includes(limpio(z.nombre))) ||
+    (referencias[seleccion]||[]).some(nombre=>texto.includes(nombre));
+}
 let consulta=0;
 form.onsubmit=async e=>{
   e.preventDefault();
@@ -43,7 +52,7 @@ form.onsubmit=async e=>{
     const equivalentes={Exposición:'Artes y cultura',Teatro:'Artes y cultura',Literatura:'Lectura'};
     for(const a of value(editoriales)){
       if(categoria && categoria!==a.categoria && categoria!==equivalentes[a.categoria])continue;
-      if(!limpio(a.lugar).includes(zona))continue;
+      if(!coincideZona(a.lugar,zona))continue;
       const dias=a.dias.filter(d=>d>=startDate && (!fechas.length||fechas.includes(d))).sort();
       if(fechas.length&&!dias.length)continue;
       planes.push({fecha:dias[0]||a.desde,card:ficha(a)});
@@ -62,11 +71,17 @@ form.onsubmit=async e=>{
 async function show(){
   const [cats,zones,rows]=await Promise.all([
     db.from('categorias').select('nombre').eq('activa',true).order('nombre'),
-    db.from('zonas').select('nombre').eq('activa',true).order('nombre'),
+    db.from('zonas').select('nombre,municipio').eq('activa',true).order('nombre'),
     db.from('anuncios').select('id,titulo,categoria,organizador,zona,municipio,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString()).order('fecha_inicio').limit(6)
   ]);
   document.getElementById('tipo').replaceChildren(new Option('Todas',''),...value(cats).map(x=>new Option(x.nombre)));
-  document.getElementById('zonas-caracas').replaceChildren(...value(zones).map(x=>new Option(x.nombre)));
+  zonasActivas=value(zones);
+  const selector=document.getElementById('zona');
+  for(const municipio of ['Baruta','Chacao','El Hatillo','Libertador','Sucre']){
+    const grupo=document.createElement('optgroup');grupo.label=municipio;
+    for(const zona of zonasActivas.filter(z=>z.municipio===municipio && z.nombre!==municipio))grupo.append(new Option(zona.nombre,zona.nombre));
+    if(grupo.children.length)selector.append(grupo);
+  }
   const grid=document.getElementById('featured-track'),items=value(rows);
   if(!items.length){grid.textContent='Las próximas actividades aparecerán aquí cuando el equipo apruebe los anuncios.';return}
   for (const a of items) grid.append(eventCard(a,'market/#actividad/'+a.id));
