@@ -60,8 +60,8 @@ async function buscar(desplazar=false){
     }
     planes.sort((a,b)=>a.fecha.localeCompare(b.fecha));
     salida.replaceChildren(...planes.map(plan=>plan.card));
-    estado.textContent=planes.length===1?'1 plan encontrado.':planes.length?planes.length+' planes encontrados.':'No encontramos planes. Prueba con otra zona, fecha o categoría.';
-    if(desplazar)estado.scrollIntoView({block:'center'});
+    estado.textContent=planes.length?'':'No encontramos planes. Prueba con otra zona, fecha o categoría.';
+    if(desplazar)(salida.firstElementChild || estado).scrollIntoView({block:'center'});
   }catch{if(version===consulta)estado.textContent='No pudimos cargar los planes. Vuelve a intentarlo.';}
 };
 form.onsubmit=e=>{e.preventDefault();buscar(true)};
