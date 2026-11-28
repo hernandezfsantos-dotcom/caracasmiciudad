@@ -27,6 +27,7 @@ async function buscar(desplazar=false){
   salida.replaceChildren();estado.textContent='Buscando planes…';
   const zona=limpio(document.getElementById('zona').value),categoria=document.getElementById('tipo').value;
   const filtrado=!!(zona||categoria||period.value);
+  document.getElementById('restablecer-planes').hidden=!filtrado;
   for(const id of ['planes-gratis','destacados'])document.getElementById(id).hidden=filtrado;
   const fechas=[];
   if(period.value==='hoy')fechas.push(startDate);
@@ -75,6 +76,14 @@ async function buscar(desplazar=false){
 };
 form.onsubmit=e=>{e.preventDefault();buscar(true)};
 form.addEventListener('change',()=>buscar());
+document.getElementById('restablecer-planes').onclick=()=>{
+  document.getElementById('zona').value='';
+  document.getElementById('tipo').value='';
+  period.value='';day.value=startDate;day.required=false;
+  document.getElementById('dia-label').hidden=true;
+  document.getElementById('zona').focus();
+  buscar();
+};
 async function show(){
   const [cats,zones,rows]=await Promise.all([
     db.from('categorias').select('nombre').eq('activa',true).order('nombre'),
