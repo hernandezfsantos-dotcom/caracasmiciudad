@@ -1,3 +1,4 @@
+import {ubicacionEditorial} from './ubicacion.js';
 import {eventCard} from './event-card.js';
 import {db,value,money,date} from './client.js';
 const form=document.getElementById('buscar-planes'),period=document.getElementById('periodo'),day=document.getElementById('dia');
@@ -15,22 +16,11 @@ function ficha(a,previo){
     const organizador=previo?.querySelector('.free-plan-links a:nth-child(2)');
     if(organizador)enlaces.append(organizador.cloneNode(true));
     detalle.append(crear('summary','Más información'),crear('p',a.descripcion),enlaces);
-    badge.append(crear('span',a.etiqueta));body.append(badge,crear('p',a.horario,'free-plan-when'),crear('p',a.lugar,'free-plan-venue'),crear('h3',a.titulo),detalle);
+    badge.append(crear('span',a.etiqueta));body.append(badge,crear('p',a.horario,'free-plan-when'),crear('p',a.lugar,'free-plan-venue'),crear('p','Municipio: '+(ubicacionEditorial(a.lugar,zonasActivas).municipio||'Por confirmar'),'free-plan-venue'),crear('h3',a.titulo),detalle);
     card.append(figure,body);return card;
 }
 const limpio = texto => (texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
 let zonasActivas=[];
-const municipios=['Baruta','Chacao','El Hatillo','Libertador','Sucre'];
-function ubicacionEditorial(lugar){
-  const texto=limpio(lugar);
-  const zonas=[...zonasActivas,
-    ...[['Los Caobos','Libertador'],['Bellas Artes','Libertador'],['Montalbán','Libertador'],['Manzanares','Baruta'],['La Trinidad','Baruta'],['Bello Monte','Baruta'],['Terrazas del Ávila','Sucre']].map(([nombre,municipio])=>({nombre,municipio}))];
-  if(texto.includes('plaza de los museos'))return {nombre:'Bellas Artes',municipio:'Libertador'};
-  if(texto.includes('ucv'))return {nombre:'Ciudad Universitaria',municipio:'Libertador'};
-  if(texto.includes('los galpones'))return {nombre:'Los Chorros',municipio:'Sucre'};
-  return zonas.sort((a,b)=>b.nombre.length-a.nombre.length).find(z=>texto.includes(limpio(z.nombre))) ||
-    {nombre:'Zona por confirmar',municipio:municipios.find(m=>texto.includes(limpio(m)))||''};
-}
 let consulta=0;
 async function buscar(desplazar=false){
   const version=++consulta, salida=document.getElementById('planes-reales'), estado=document.getElementById('resultado');
@@ -49,22 +39,22 @@ async function buscar(desplazar=false){
   try{
     const [editoriales,anuncios]=await Promise.all([
       db.from('agenda_editorial').select('*').eq('publicada',true).gte('hasta',startDate),
-      db.from('anuncios').select('id,titulo,categoria,organizador,zona,municipio,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString())
+      db.from('anuncios').select('id,titulo,categoria,organizador,zona,municipio,direccion,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString())
     ]);
     if(version!==consulta)return;
     const planes=[];
     const equivalentes={Exposición:'Artes y cultura',Teatro:'Artes y cultura',Literatura:'Lectura'};
     for(const a of value(editoriales)){
       if(categoria && categoria!==a.categoria && categoria!==equivalentes[a.categoria])continue;
-      const lugar=ubicacionEditorial(a.lugar);
-      if(zona && limpio(lugar.municipio)!==zona)continue;
+      const lugar=ubicacionEditorial(a.lugar,zonasActivas);
+      if(zona && ![limpio(lugar.municipio),limpio(lugar.nombre)].includes(zona))continue;
       const dias=a.dias.filter(d=>d>=startDate && (!fechas.length||fechas.includes(d))).sort();
       if(fechas.length&&!dias.length)continue;
       planes.push({fecha:dias[0]||a.desde,zona:lugar.nombre,municipio:lugar.municipio,card:ficha(a)});
     }
     for(const a of value(anuncios)){
       const fecha=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Caracas'}).format(new Date(a.fecha_inicio));
-      if(categoria && categoria!==a.categoria || (zona && limpio(a.municipio)!==zona) || fechas.length&&!fechas.includes(fecha))continue;
+      if(categoria && categoria!==a.categoria || (zona && ![limpio(a.municipio),limpio(a.zona)].includes(zona)) || fechas.length&&!fechas.includes(fecha))continue;
       planes.push({fecha,zona:a.zona||"Zona por confirmar",municipio:a.municipio,card:eventCard(a,'market/#actividad/'+a.id)});
     }
     planes.sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -89,10 +79,17 @@ async function show(){
   const [cats,zones,rows]=await Promise.all([
     db.from('categorias').select('nombre').eq('activa',true).order('nombre'),
     db.from('zonas').select('nombre,municipio').eq('activa',true).order('nombre'),
-    db.from('anuncios').select('id,titulo,categoria,organizador,zona,municipio,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString()).order('fecha_inicio').limit(6)
+    db.from('anuncios').select('id,titulo,categoria,organizador,zona,municipio,direccion,moneda,precio,fecha_inicio,imagenes').eq('estado','publicado').gt('fecha_inicio',new Date().toISOString()).order('fecha_inicio').limit(6)
   ]);
   document.getElementById('tipo').replaceChildren(new Option('Todas',''),...value(cats).map(x=>new Option(x.nombre)));
   zonasActivas=value(zones);
+  const selector=document.getElementById('zona');
+  for(const municipio of [...new Set(zonasActivas.map(z=>z.municipio))]){
+    const grupo=document.createElement('optgroup');grupo.label='Zonas de '+municipio;
+    for(const z of zonasActivas.filter(z=>z.municipio===municipio && z.nombre!==municipio))grupo.append(new Option(z.nombre,z.nombre));
+    if(grupo.children.length)selector.append(grupo);
+  }
+  cargarAgendaEditorial().catch(()=>{});
   buscar();
   const grid=document.getElementById('featured-track'),items=value(rows);
   if(!items.length){grid.textContent='Las próximas actividades aparecerán aquí cuando el equipo apruebe los anuncios.';return}
@@ -121,4 +118,3 @@ async function cargarAgendaEditorial() {
   seccion.replaceChildren(titulo,nav,...Array.from(meses.values(),m=>m.grupo));
   if(!datos.length)seccion.append(crear('p','Pronto publicaremos más planes gratuitos.'));
 }
-cargarAgendaEditorial().catch(()=>{document.getElementById('resultado').textContent='No pudimos actualizar la agenda editorial.';});
