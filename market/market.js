@@ -1,4 +1,4 @@
-import {ubicacionEditorial} from './ubicacion.js';
+import {direccionEditorial} from './ubicacion.js';
 import {eventCard} from './event-card.js';
 import {db,value,money,date,localTime} from './client.js';
 
@@ -171,7 +171,7 @@ function fichaEditorial(a) {
   cover.append(img,el('span',a.categoria,'agenda-category'));
   const body=el('div',null,'agenda-body'), details=el('details');
   details.append(el('summary','Más información'),el('p',a.descripcion),link('Consultar la fuente del evento',a.fuente));
-  body.append(el('p',a.horario,'agenda-date'),el('p',a.lugar,'agenda-place'),el('p','Municipio: '+(ubicacionEditorial(a.lugar,zones).municipio||'Por confirmar'),'agenda-place'),el('h3',a.titulo),el('strong',a.etiqueta,'agenda-price'),details);
+  body.append(el('p',a.horario,'agenda-date'),el('p',direccionEditorial(a.lugar,zones),'agenda-place'),el('h3',a.titulo),el('strong',a.etiqueta,'agenda-price'),details);
   item.append(cover,body);
   return item;
 }
