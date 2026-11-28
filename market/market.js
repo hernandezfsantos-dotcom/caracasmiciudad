@@ -1,3 +1,4 @@
+import {ubicacionEditorial} from './ubicacion.js';
 import {eventCard} from './event-card.js';
 import {db,value,money,date,localTime} from './client.js';
 
@@ -144,7 +145,7 @@ async function photo(path, where) {
 function card(a,available) {
   return eventCard(a,activity(a.id),available);
 }
-const searchFields = 'id,titulo,descripcion,organizador,categoria,municipio,zona,fecha_inicio,precio,moneda,imagenes';
+const searchFields = 'id,titulo,descripcion,organizador,categoria,municipio,zona,direccion,fecha_inicio,precio,moneda,imagenes';
 async function agendaEditorial(f) {
   if (f.precio === 'pago' || f.libres) return [];
   const hoy = new Intl.DateTimeFormat('sv-SE', {timeZone:'America/Caracas'}).format(new Date());
@@ -170,7 +171,7 @@ function fichaEditorial(a) {
   cover.append(img,el('span',a.categoria,'agenda-category'));
   const body=el('div',null,'agenda-body'), details=el('details');
   details.append(el('summary','Más información'),el('p',a.descripcion),link('Consultar la fuente del evento',a.fuente));
-  body.append(el('p',a.horario,'agenda-date'),el('p',a.lugar,'agenda-place'),el('h3',a.titulo),el('strong',a.etiqueta,'agenda-price'),details);
+  body.append(el('p',a.horario,'agenda-date'),el('p',a.lugar,'agenda-place'),el('p','Municipio: '+(ubicacionEditorial(a.lugar,zones).municipio||'Por confirmar'),'agenda-place'),el('h3',a.titulo),el('strong',a.etiqueta,'agenda-price'),details);
   item.append(cover,body);
   return item;
 }
