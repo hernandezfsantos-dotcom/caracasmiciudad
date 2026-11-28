@@ -10,3 +10,10 @@ export function ubicacionEditorial(lugar,zonasActivas=[]){
   return zonas.sort((a,b)=>b.nombre.length-a.nombre.length).find(z=>texto.includes(limpio(z.nombre))) ||
     {nombre:'Zona por confirmar',municipio:municipios.find(m=>texto.includes(limpio(m)))||''};
 }
+
+export function direccionEditorial(lugar, zonas) {
+  const {municipio}=ubicacionEditorial(lugar,zonas);
+  const partes=lugar.split(',').map(parte=>parte.trim());
+  if(municipio && limpio(partes.at(-1))===limpio(municipio) && partes.length>1) partes.pop();
+  return partes.join(', ')+(municipio?' · Municipio: '+municipio:'');
+}
