@@ -371,12 +371,42 @@ submit(listing,async f=>{
   if(old?.imagenes?.length&&uploaded.length)await db.storage.from('anuncios').remove(old.imagenes);
   location.hash='#cuenta';notify('Anuncio enviado a revisión.');
 });
+function editorAgenda(root, evento = {}) {
+  const panel=el('details'), form=el('form',null,'compact');
+  panel.append(el('summary',evento.titulo || 'Crear actividad informativa'),form);
+  const campos={titulo:'Título',categoria:'Categoría',lugar:'Lugar',horario:'Horario de visita',descripcion:'Descripción',fuente:'Enlace a la fuente',imagen:'Ruta de la foto autorizada en el sitio',etiqueta:'Indicación de entrada',desde:'Desde',hasta:'Hasta',dias:'Fechas concretas (AAAA-MM-DD, separadas por comas)'};
+  for(const [key,texto] of Object.entries(campos)){
+    const label=el('label',texto), input=el(key==='descripcion'?'textarea':'input');
+    input.name=key; input.required=key!=='dias';
+    if(['desde','hasta'].includes(key))input.type='date';
+    if(key==='fuente'){input.type='url';input.pattern='https://.+';}
+    input.value=evento[key] ?? (key==='etiqueta'?'Gratis':'');
+    label.append(input);form.append(label);
+  }
+  const label=el('label','Publicada'), visible=el('input');
+  visible.type='checkbox';visible.checked=!!evento.publicada;
+  label.prepend(visible);form.append(label,el('button','Guardar actividad'));
+  submit(form,async f=>{
+    const dias=[...new Set(f.dias.split(',').map(d=>d.trim()).filter(Boolean))].sort();
+    if(f.desde>f.hasta || dias.some(d=>!/^\d{4}-\d{2}-\d{2}$/.test(d)||d<f.desde||d>f.hasta))throw Error('Revisa las fechas de la actividad.');
+    if(!/^assets\/[a-z0-9/_-]+\.(webp|png|jpe?g)$/i.test(f.imagen))throw Error('Usa una foto de la carpeta assets del sitio.');
+    const datos={...f,dias,publicada:visible.checked};
+    const tabla=db.from('agenda_editorial');
+    await get((evento.id?tabla.update(datos).eq('id',evento.id):tabla.insert(datos)).select('id').single());
+    await administration(routeVersion);notify('Actividad editorial guardada.');
+  });
+  root.append(panel);
+}
 async function administration(version) {
   if(!admin)throw Error('Acceso restringido.');
   const [data,listings]=await Promise.all([get(db.rpc('panel_administrativo')),get(db.from('anuncios').select('*').order('creado',{ascending:false}))]);
   if(version!==routeVersion)return;
   for(const key of ['moderation','users','admin-bookings','audit','taxonomy-list'])$(key).replaceChildren();
   $('stats').textContent=data.usuarios.length+' perfiles · '+listings.filter(x=>x.estado==='pendiente').length+' anuncios pendientes · '+listings.filter(x=>x.estado==='publicado').length+' publicados';
+  const agenda=await get(db.from('agenda_editorial').select('*').order('desde'));
+  if(version!==routeVersion)return;
+  const editorial=el('section');editorial.append(el('h3','Agenda editorial'));$('moderation').append(editorial);
+  editorAgenda(editorial);for(const evento of agenda)editorAgenda(editorial,evento);
   for(const a of listings){
     const box=row($('moderation'),a.titulo,[a.estado,a.organizador,a.municipio,a.zona,a.direccion,date(a.fecha_inicio),quote(a),a.descripcion,a.condiciones,a.instrucciones,a.motivo].filter(Boolean).join(' · '));
     const images=el('div',null,'photos');box.append(images);for(const image of a.imagenes)void photo(image,images);
