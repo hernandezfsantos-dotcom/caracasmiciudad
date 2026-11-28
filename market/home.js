@@ -1,4 +1,4 @@
-import {ubicacionEditorial} from './ubicacion.js';
+import {ubicacionEditorial,direccionEditorial} from './ubicacion.js';
 import {eventCard} from './event-card.js';
 import {db,value,money,date} from './client.js';
 const form=document.getElementById('buscar-planes'),period=document.getElementById('periodo'),day=document.getElementById('dia');
@@ -16,7 +16,7 @@ function ficha(a,previo){
     const organizador=previo?.querySelector('.free-plan-links a:nth-child(2)');
     if(organizador)enlaces.append(organizador.cloneNode(true));
     detalle.append(crear('summary','Más información'),crear('p',a.descripcion),enlaces);
-    badge.append(crear('span',a.etiqueta));body.append(badge,crear('p',a.horario,'free-plan-when'),crear('p',a.lugar,'free-plan-venue'),crear('p','Municipio: '+(ubicacionEditorial(a.lugar,zonasActivas).municipio||'Por confirmar'),'free-plan-venue'),crear('h3',a.titulo),detalle);
+    badge.append(crear('span',a.etiqueta));body.append(badge,crear('p',a.horario,'free-plan-when'),crear('p',direccionEditorial(a.lugar,zonasActivas),'free-plan-venue'),crear('h3',a.titulo),detalle);
     card.append(figure,body);return card;
 }
 const limpio = texto => (texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
@@ -51,25 +51,15 @@ async function buscar(desplazar=false){
       if(zona && ![limpio(lugar.municipio),limpio(lugar.nombre)].includes(zona))continue;
       const dias=a.dias.filter(d=>d>=startDate && (!fechas.length||fechas.includes(d))).sort();
       if(fechas.length&&!dias.length)continue;
-      planes.push({fecha:dias[0]||a.desde,zona:lugar.nombre,municipio:lugar.municipio,card:ficha(a)});
+      planes.push({fecha:dias[0]||a.desde,card:ficha(a)});
     }
     for(const a of value(anuncios)){
       const fecha=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Caracas'}).format(new Date(a.fecha_inicio));
       if(categoria && categoria!==a.categoria || (zona && ![limpio(a.municipio),limpio(a.zona)].includes(zona)) || fechas.length&&!fechas.includes(fecha))continue;
-      planes.push({fecha,zona:a.zona||"Zona por confirmar",municipio:a.municipio,card:eventCard(a,'market/#actividad/'+a.id)});
+      planes.push({fecha,card:eventCard(a,'market/#actividad/'+a.id)});
     }
     planes.sort((a,b)=>a.fecha.localeCompare(b.fecha));
-    const grupos=new Map();
-    for(const p of planes){
-      const nombre=[p.zona,p.municipio].filter(Boolean).join(' · ');
-      if(!grupos.has(nombre))grupos.set(nombre,[]);
-      grupos.get(nombre).push(p.card);
-    }
-    for(const nombre of [...grupos.keys()].sort((a,b)=>a.localeCompare(b,'es'))){
-      const bloque=crear('section'), grid=crear('div',null,'free-plan-grid');
-      grid.append(...grupos.get(nombre));bloque.append(crear('h3',nombre,'free-plan-month-title'),grid);
-      salida.append(bloque);
-    }
+    salida.replaceChildren(...planes.map(plan=>plan.card));
     estado.textContent=planes.length===1?'1 plan encontrado.':planes.length?planes.length+' planes encontrados.':'No encontramos planes. Prueba con otra zona, fecha o categoría.';
     if(desplazar)estado.scrollIntoView({block:'center'});
   }catch{if(version===consulta)estado.textContent='No pudimos cargar los planes. Vuelve a intentarlo.';}
