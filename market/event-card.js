@@ -24,7 +24,7 @@ export function eventCard(event, href, available) {
   const link = node('a','agenda-action','Ver detalles y reservar');
   link.href = href;
   link.setAttribute('aria-label','Ver detalles y reservar: '+event.titulo);
-  body.append(node('p','agenda-date',date(event.fecha_inicio)),node('p','agenda-place',[event.zona,event.municipio].filter(Boolean).join(' · ')),title);
+  body.append(node('p','agenda-date',date(event.fecha_inicio)),node('p','agenda-place',[event.direccion,event.zona,event.municipio && 'Municipio: '+event.municipio].filter(Boolean).join(' · ')),title);
   if (event.organizador) body.append(node('p','agenda-host',event.organizador));
   body.append(node('strong','agenda-price',Number(event.precio)?money(event.precio,event.moneda):'Gratis'));
   if (available != null) body.append(node('small','',available+' cupos disponibles'));
