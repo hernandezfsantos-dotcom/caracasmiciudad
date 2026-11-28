@@ -210,22 +210,22 @@ async function detail(id,version) {
   root.replaceChildren(link('Volver a experiencias','#buscar',''),el('h1',a.titulo),photos,el('p',a.descripcion),
     el('p','Organiza '+(a.organizador||'el anunciante')),el('p',[a.municipio,a.zona,a.direccion].filter(Boolean).join(' · ')),
     el('p',date(a.fecha_inicio)+' · Hora de Caracas'),el('strong',quote(a)+' por persona'),el('p',n+' cupos disponibles'),
-    el('p',a.condiciones),el('p',a.precio?'El organizador debe confirmar tu solicitud. Después acordarás el pago directamente con él. '+a.instrucciones:'Actividad gratuita.'),save);
-  if (a.anunciante_id===session?.user.id || !n || Date.parse(a.fecha_inicio)<=Date.now()) return;
+    el('p',a.condiciones),el('p',Number(a.precio)>0?'El pago en línea todavía no está disponible.':'Actividad gratuita con reserva.'),save);
+  if (Number(a.precio)>0 || a.anunciante_id===session?.user.id || !n || Date.parse(a.fecha_inicio)<=Date.now()) return;
   if (!session) {
     root.append(action('Entrar para reservar',()=>sign(activity(id),'reserve')));
     return;
   }
   const form = el('form',null,'compact'), label = el('label','Número de participantes'), qty = el('input');
   Object.assign(qty,{type:'number',name:'qty',min:'1',max:String(Math.min(n,100)),value:'1',required:true});
-  const total = el('output','Total: '+quote(a)), button = el('button','Solicitar reserva');
+  const total = el('output','Total: '+quote(a)), button = el('button','Reservar gratis');
   qty.oninput = ()=>{total.textContent='Total: '+quote(a,Number(qty.value))};
   label.append(qty);form.append(label,total,button);root.append(form);
   submit(form,async({qty:count})=>{
     if (!session) return sign(activity(id),'reserve');
     if (!person) return editProfileFor(activity(id));
     await get(db.rpc('pedir_reserva',{actividad:id,plazas:Number(count)}));
-    location.hash='#cuenta';notify('Solicitud recibida. Consulta su estado en Mi cuenta.');
+    location.hash='#cuenta';notify('Consulta tu reserva en Mi cuenta.');
   });
 }
 function editProfileFor(target) {
@@ -244,9 +244,8 @@ function booking(root,r,host) {
   if(!host&&a?.whatsapp&&r.estado==='confirmada')box.append(el('p',a.instrucciones),link('Contactar por WhatsApp','https://wa.me/'+a.whatsapp.replace('+','')));
   const actions=el('div',null,'buttons');box.append(actions);
   function change(name,status) {actions.append(action(name,async()=>{await get(db.rpc('gestionar_reserva',{reserva:r.id,accion:status}));notify('Reserva actualizada.');await dashboard(routeVersion)}));}
-  if(host&&r.estado==='pendiente'){change('Confirmar','confirmada');change('Rechazar','rechazada')}
-  if(host&&r.estado==='confirmada')change('Marcar completada','completada');
-  if(host&&['confirmada','completada'].includes(r.estado)&&!r.pagada&&Number(r.total)>0)change('Registrar pago recibido','pagada');
+  if(host&&r.estado==='pendiente'){if(r.total!=null && Number(r.total)===0)change('Confirmar','confirmada');change('Rechazar','rechazada')}
+  if(host&&r.estado==='confirmada'&&(r.pagada||(r.total!=null&&Number(r.total)===0)))change('Marcar completada','completada');
   if(host&&r.pagada&&Number(r.total)>0)box.append(el('p','Comisión de Caracas.Hoy: '+money(Number(r.total)*.15,r.moneda)));
   if(!host&&['confirmada','pendiente'].includes(r.estado)&&!r.pagada)change('Cancelar','cancelada');
 }
@@ -403,7 +402,7 @@ submit($('register'),async f=>{
     session=data.session;
     await refreshAccount();
     finishAccess(next);
-    notify('¡Te damos la bienvenida a Caracas.Hoy! Tu cuenta está lista.');
+    notify('¡Bienvenido a Caracas.hoy! Tu cuenta ha sido creada correctamente.');
     return;
   }
   accessStep('login');
@@ -471,8 +470,8 @@ db.auth.onAuthStateChange((event,current)=>{
   window.addEventListener('hashchange',()=>route().catch(feedback));
   await route();
   const arrival = new URL(location.href);
-  if(session?.user?.email_confirmed_at && (signupReturn || arrival.searchParams.get('bienvenida')==='1')) {
-    notify('¡Te damos la bienvenida a Caracas.Hoy! Tu cuenta está creada y tu correo está confirmado.');
+  if(session?.user?.email_confirmed_at && signupReturn) {
+    notify('¡Bienvenido a Caracas.hoy! Tu cuenta ha sido creada correctamente.');
     arrival.searchParams.delete('bienvenida');
     history.replaceState(null,'',arrival);
   }
