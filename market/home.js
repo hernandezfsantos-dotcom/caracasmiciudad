@@ -20,20 +20,24 @@ function ficha(a,previo){
 }
 const limpio = texto => (texto||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
 let zonasActivas=[];
-function coincideZona(lugar, seleccion){
-  if(!seleccion)return true;
+const municipios=['Baruta','Chacao','El Hatillo','Libertador','Sucre'];
+function ubicacionEditorial(lugar){
   const texto=limpio(lugar);
-  if(texto.includes(seleccion))return true;
-  const referencias={libertador:['parque los caobos','plaza de los museos','bellas artes','montalban','ucv'],sucre:['terrazas del avila','los galpones'],baruta:['manzanares','la trinidad']};
-  return zonasActivas.some(z=>limpio(z.municipio)===seleccion && texto.includes(limpio(z.nombre))) ||
-    (referencias[seleccion]||[]).some(nombre=>texto.includes(nombre));
+  const zonas=[...zonasActivas,
+    ...[['Los Caobos','Libertador'],['Bellas Artes','Libertador'],['Montalbán','Libertador'],['Manzanares','Baruta'],['La Trinidad','Baruta'],['Bello Monte','Baruta'],['Terrazas del Ávila','Sucre']].map(([nombre,municipio])=>({nombre,municipio}))];
+  if(texto.includes('plaza de los museos'))return {nombre:'Bellas Artes',municipio:'Libertador'};
+  if(texto.includes('ucv'))return {nombre:'Ciudad Universitaria',municipio:'Libertador'};
+  if(texto.includes('los galpones'))return {nombre:'Los Chorros',municipio:'Sucre'};
+  return zonas.sort((a,b)=>b.nombre.length-a.nombre.length).find(z=>texto.includes(limpio(z.nombre))) ||
+    {nombre:'Zona por confirmar',municipio:municipios.find(m=>texto.includes(limpio(m)))||''};
 }
 let consulta=0;
-form.onsubmit=async e=>{
-  e.preventDefault();
+async function buscar(desplazar=false){
   const version=++consulta, salida=document.getElementById('planes-reales'), estado=document.getElementById('resultado');
   salida.replaceChildren();estado.textContent='Buscando planes…';
   const zona=limpio(document.getElementById('zona').value),categoria=document.getElementById('tipo').value;
+  const filtrado=!!(zona||categoria||period.value);
+  for(const id of ['planes-gratis','destacados'])document.getElementById(id).hidden=filtrado;
   const fechas=[];
   if(period.value==='hoy')fechas.push(startDate);
   if(period.value==='manana')fechas.push(shift(startDate,1));
@@ -52,22 +56,35 @@ form.onsubmit=async e=>{
     const equivalentes={Exposición:'Artes y cultura',Teatro:'Artes y cultura',Literatura:'Lectura'};
     for(const a of value(editoriales)){
       if(categoria && categoria!==a.categoria && categoria!==equivalentes[a.categoria])continue;
-      if(!coincideZona(a.lugar,zona))continue;
+      const lugar=ubicacionEditorial(a.lugar);
+      if(zona && limpio(lugar.municipio)!==zona)continue;
       const dias=a.dias.filter(d=>d>=startDate && (!fechas.length||fechas.includes(d))).sort();
       if(fechas.length&&!dias.length)continue;
-      planes.push({fecha:dias[0]||a.desde,card:ficha(a)});
+      planes.push({fecha:dias[0]||a.desde,zona:lugar.nombre,municipio:lugar.municipio,card:ficha(a)});
     }
     for(const a of value(anuncios)){
       const fecha=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Caracas'}).format(new Date(a.fecha_inicio));
-      if(categoria && categoria!==a.categoria || !limpio([a.zona,a.municipio].join(' ')).includes(zona) || fechas.length&&!fechas.includes(fecha))continue;
-      planes.push({fecha,card:eventCard(a,'market/#actividad/'+a.id)});
+      if(categoria && categoria!==a.categoria || (zona && limpio(a.municipio)!==zona) || fechas.length&&!fechas.includes(fecha))continue;
+      planes.push({fecha,zona:a.zona||"Zona por confirmar",municipio:a.municipio,card:eventCard(a,'market/#actividad/'+a.id)});
     }
     planes.sort((a,b)=>a.fecha.localeCompare(b.fecha));
-    salida.replaceChildren(...planes.map(p=>p.card));
+    const grupos=new Map();
+    for(const p of planes){
+      const nombre=[p.zona,p.municipio].filter(Boolean).join(' · ');
+      if(!grupos.has(nombre))grupos.set(nombre,[]);
+      grupos.get(nombre).push(p.card);
+    }
+    for(const nombre of [...grupos.keys()].sort((a,b)=>a.localeCompare(b,'es'))){
+      const bloque=crear('section'), grid=crear('div',null,'free-plan-grid');
+      grid.append(...grupos.get(nombre));bloque.append(crear('h3',nombre,'free-plan-month-title'),grid);
+      salida.append(bloque);
+    }
     estado.textContent=planes.length===1?'1 plan encontrado.':planes.length?planes.length+' planes encontrados.':'No encontramos planes. Prueba con otra zona, fecha o categoría.';
-    estado.scrollIntoView({block:'center'});
+    if(desplazar)estado.scrollIntoView({block:'center'});
   }catch{if(version===consulta)estado.textContent='No pudimos cargar los planes. Vuelve a intentarlo.';}
 };
+form.onsubmit=e=>{e.preventDefault();buscar(true)};
+form.addEventListener('change',()=>buscar());
 async function show(){
   const [cats,zones,rows]=await Promise.all([
     db.from('categorias').select('nombre').eq('activa',true).order('nombre'),
@@ -76,12 +93,7 @@ async function show(){
   ]);
   document.getElementById('tipo').replaceChildren(new Option('Todas',''),...value(cats).map(x=>new Option(x.nombre)));
   zonasActivas=value(zones);
-  const selector=document.getElementById('zona');
-  for(const municipio of ['Baruta','Chacao','El Hatillo','Libertador','Sucre']){
-    const grupo=document.createElement('optgroup');grupo.label=municipio;
-    for(const zona of zonasActivas.filter(z=>z.municipio===municipio && z.nombre!==municipio))grupo.append(new Option(zona.nombre,zona.nombre));
-    if(grupo.children.length)selector.append(grupo);
-  }
+  buscar();
   const grid=document.getElementById('featured-track'),items=value(rows);
   if(!items.length){grid.textContent='Las próximas actividades aparecerán aquí cuando el equipo apruebe los anuncios.';return}
   for (const a of items) grid.append(eventCard(a,'market/#actividad/'+a.id));
