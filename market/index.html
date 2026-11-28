@@ -14,16 +14,18 @@
 <section id="buscar" hidden>
 <h1>¿Qué te provoca hacer en Caracas?</h1>
 <form id="filters">
-<label>Palabra clave<input name="q" type="search" placeholder="Teatro, pádel, café…"></label>
-<label>Categoría<select name="categoria"></select></label>
-<label>Municipio<select name="municipio"></select></label>
 <label>Zona<select name="zona"></select></label>
 <label>Fecha<input name="dia" type="date"></label>
+<label>Categoría<select name="categoria"></select></label>
+<details><summary>Más filtros</summary>
+<label>Palabra clave<input name="q" type="search" placeholder="Teatro, pádel, café…"></label>
+<label>Municipio<select name="municipio"></select></label>
 <label>Tipo de precio<select name="precio"><option value="">Todos</option><option value="gratis">Gratis</option><option value="pago">De pago</option></select></label>
 <label>Moneda<select name="moneda"><option value="USD">USD</option><option value="VES">VES</option></select></label>
 <label>Precio máximo<input name="max" type="number" min="0" step=".01"></label>
 <label class="check"><input type="checkbox" name="libres"> Solo con cupos disponibles</label>
-<div class="buttons"><button>Buscar actividades</button><button type="reset" class="secondary">Limpiar filtros</button></div>
+</details>
+<div class="buttons"><button>Ver planes</button><button type="reset" class="secondary">Limpiar</button></div>
 </form>
 <div id="results" class="cards"></div><button id="more" hidden>Ver más actividades</button>
 </section>
