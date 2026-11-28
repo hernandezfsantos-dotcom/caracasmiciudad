@@ -403,7 +403,7 @@ submit($('register'),async f=>{
     session=data.session;
     await refreshAccount();
     finishAccess(next);
-    notify('¡Te damos la bienvenida a Caracas.Hoy! Tu cuenta está lista.');
+    notify('¡Bienvenido a Caracas.hoy! Tu cuenta ha sido creada correctamente.');
     return;
   }
   accessStep('login');
@@ -471,8 +471,8 @@ db.auth.onAuthStateChange((event,current)=>{
   window.addEventListener('hashchange',()=>route().catch(feedback));
   await route();
   const arrival = new URL(location.href);
-  if(session?.user?.email_confirmed_at && (signupReturn || arrival.searchParams.get('bienvenida')==='1')) {
-    notify('¡Te damos la bienvenida a Caracas.Hoy! Tu cuenta está creada y tu correo está confirmado.');
+  if(session?.user?.email_confirmed_at && signupReturn) {
+    notify('¡Bienvenido a Caracas.hoy! Tu cuenta ha sido creada correctamente.');
     arrival.searchParams.delete('bienvenida');
     history.replaceState(null,'',arrival);
   }
