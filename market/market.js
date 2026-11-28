@@ -145,6 +145,35 @@ function card(a,available) {
   return eventCard(a,activity(a.id),available);
 }
 const searchFields = 'id,titulo,descripcion,organizador,categoria,municipio,zona,fecha_inicio,precio,moneda,imagenes';
+async function agendaEditorial(f) {
+  if (f.precio === 'pago' || f.libres) return [];
+  const hoy = new Intl.DateTimeFormat('sv-SE', {timeZone:'America/Caracas'}).format(new Date());
+  const data = await get(db.from('agenda_editorial').select('*').eq('publicada',true)
+    .gte('hasta',hoy).order('desde').order('titulo'));
+  const categorias = {Literatura:'Lectura',Exposición:'Artes y cultura',Teatro:'Artes y cultura'};
+  return data.filter(a => {
+    if (f.categoria && ![a.categoria,categorias[a.categoria]].includes(f.categoria)) return false;
+    const lugar = normalize(a.lugar);
+    if ([f.zona,f.municipio].some(z => z && !lugar.includes(normalize(z)))) return false;
+    if (f.dia && (f.dia < hoy || !a.dias.includes(f.dia))) return false;
+    if (!f.dia && filters.dataset.weekend === '1') {
+      const weekday = new Date(hoy+'T12:00:00Z').getUTCDay();
+      const fin = new Date(Date.parse(hoy+'T12:00:00Z') + ((7-weekday)%7)*86400000).toISOString().slice(0,10);
+      if (!a.dias.some(d => d>=hoy && d<=fin && [0,5,6].includes(new Date(d+'T12:00:00Z').getUTCDay()))) return false;
+    }
+    return normalize([a.titulo,a.categoria,a.lugar,a.descripcion].join(' ')).includes(normalize(f.q));
+  });
+}
+function fichaEditorial(a) {
+  const item=el('article',null,'agenda-card'), cover=el('div',null,'agenda-cover');
+  const img=el('img'); img.src='../'+a.imagen; img.alt=''; img.loading='lazy';
+  cover.append(img,el('span',a.categoria,'agenda-category'));
+  const body=el('div',null,'agenda-body'), details=el('details');
+  details.append(el('summary','Más información'),el('p',a.descripcion),link('Consultar la fuente del evento',a.fuente));
+  body.append(el('p',a.horario,'agenda-date'),el('p',a.lugar,'agenda-place'),el('h3',a.titulo),el('strong',a.etiqueta,'agenda-price'),details);
+  item.append(cover,body);
+  return item;
+}
 async function search(reset = true) {
   const turn = ++searchVersion;
   if (reset) {offset = 0;$('more').hidden=true;}
@@ -175,7 +204,10 @@ async function search(reset = true) {
     offset = start + data.length;
     hasMore = data.length === 48;
   }
+  const editoriales = reset ? await agendaEditorial(f) : [];
+  if (turn !== searchVersion) return;
   if(reset) out.replaceChildren();
+  for (const evento of editoriales) out.append(fichaEditorial(evento));
   for (const [a,n] of rows) out.append(card(a,n));
   if (!out.children.length) out.append(el('p','No encontramos actividades. Prueba con otra fecha, zona o categoría, o limpia los filtros.'));
   $('more').hidden = !hasMore;
